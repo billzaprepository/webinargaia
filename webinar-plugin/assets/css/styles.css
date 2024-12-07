@@ -1,0 +1,54 @@
+.webinar-simulator {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.webinar-video {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.webinar-video video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.webinar-overlay {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    color: white;
+}
+
+.webinar-chat {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+@media (max-width: 768px) {
+    .webinar-simulator {
+        grid-template-columns: 1fr;
+    }
+}

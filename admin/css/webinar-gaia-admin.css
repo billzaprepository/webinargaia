@@ -1,0 +1,29 @@
+.webinar-gaia-admin {
+    padding: 20px;
+}
+
+.webinar-gaia-admin h1 {
+    color: #23282d;
+    font-size: 2em;
+    margin-bottom: 1em;
+}
+
+.webinar-gaia-admin .card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.webinar-gaia-admin .form-table {
+    margin-top: 20px;
+}
+
+.webinar-gaia-admin .form-table th {
+    width: 200px;
+}
+
+.webinar-gaia-admin .button-primary {
+    margin-top: 20px;
+}
