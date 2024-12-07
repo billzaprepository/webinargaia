@@ -17,7 +17,7 @@ export interface Plan {
   customization: boolean;
   analytics: boolean;
   duration?: number;
-  functionalities: string[];
+  functionalities?: string[];
 }
 
 export interface Subscription {
@@ -37,13 +37,14 @@ export interface User {
   name: string;
   email: string;
   password: string;
-  role: 'admin' | 'customer' | 'guest';
+  role: 'admin' | 'collaborator';
   company?: string;
   phone?: string;
   subscription?: Subscription;
-  webinars: Webinar[];
+  webinars: any[];
   createdAt: Date;
   lastLogin?: Date;
+  selectedPlanId?: string;
 }
 
 export interface UserState {
@@ -52,10 +53,10 @@ export interface UserState {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  register: (user: Omit<User, 'id' | 'role' | 'webinars' | 'createdAt'>) => Promise<boolean>;
+  addUser: (user: Omit<User, 'id' | 'role' | 'webinars' | 'createdAt'>) => Promise<boolean>;
   updateUser: (id: string, data: Partial<User>) => void;
-  deleteUser: (id: string) => void;
-  subscribeToPlan: (userId: string, planId: string) => Promise<boolean>;
+  removeUser: (id: string) => boolean;
   blockUser: (userId: string) => void;
   unblockUser: (userId: string) => void;
+  updateUserFunctionalities: (userId: string, functionalities: string[]) => void;
 }
