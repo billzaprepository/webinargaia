@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState } from 'react';
 import { Webinar, WebinarState, WebinarTheme } from '../types/webinar';
 import { useAuth } from './AuthContext';
 
+const WebinarContext = createContext<WebinarState | undefined>(undefined);
+
 const defaultTheme: WebinarTheme = {
   primaryColor: '#3B82F6',
   backgroundColor: '#F3F4F6',
@@ -11,15 +13,12 @@ const defaultTheme: WebinarTheme = {
   fontFamily: 'Inter, sans-serif'
 };
 
-const WebinarContext = createContext<WebinarState | undefined>(undefined);
-
 export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [webinars, setWebinars] = useState<Webinar[]>([]);
   const [currentWebinar, setCurrentWebinar] = useState<Webinar | null>(null);
   const { currentUser } = useAuth();
 
-  // Filter webinars based on user role and ownership
-  const getAccessibleWebinars = () => {
+  const getUserWebinars = () => {
     if (!currentUser) return [];
     if (currentUser.role === 'admin') return webinars;
     return webinars.filter(webinar => webinar.createdBy === currentUser.id);
@@ -27,13 +26,7 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const addWebinar = (newWebinar: Omit<Webinar, 'id'>) => {
     if (!currentUser) return null;
-
-    // Check if user has permission to create webinars
-    const canCreateWebinar = currentUser.role === 'admin' || 
-      (currentUser.subscription?.enabledFunctionalities?.includes('create_webinar'));
-
-    if (!canCreateWebinar) return null;
-
+    
     const webinar: Webinar = {
       ...newWebinar,
       id: Math.random().toString(36).substr(2, 9),
@@ -42,49 +35,52 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
       theme: defaultTheme,
       messages: []
     };
-
+    
     setWebinars(prev => [...prev, webinar]);
     return webinar;
   };
 
   const updateWebinar = (id: string, updates: Partial<Webinar>) => {
     if (!currentUser) return;
-
-    // Find the webinar
-    const webinar = webinars.find(w => w.id === id);
-    if (!webinar) return;
-
-    // Check if user has permission to update this webinar
-    const canUpdate = currentUser.role === 'admin' || webinar.createdBy === currentUser.id;
-    if (!canUpdate) return;
-
-    setWebinars(prev => prev.map(webinar => 
-      webinar.id === id ? { ...webinar, ...updates } : webinar
-    ));
+    
+    setWebinars(prev => prev.map(webinar => {
+      // Only allow update if user is admin or the creator
+      if (webinar.id === id && (currentUser.role === 'admin' || webinar.createdBy === currentUser.id)) {
+        return { ...webinar, ...updates };
+      }
+      return webinar;
+    }));
   };
 
   const removeWebinar = (id: string) => {
     if (!currentUser) return;
+    
+    setWebinars(prev => prev.filter(webinar => {
+      // Only allow removal if user is admin or the creator
+      if (webinar.id === id) {
+        return !(currentUser.role === 'admin' || webinar.createdBy === currentUser.id);
+      }
+      return true;
+    }));
+  };
 
-    // Find the webinar
-    const webinar = webinars.find(w => w.id === id);
-    if (!webinar) return;
-
-    // Check if user has permission to delete this webinar
-    const canDelete = currentUser.role === 'admin' || webinar.createdBy === currentUser.id;
-    if (!canDelete) return;
-
-    setWebinars(prev => prev.filter(webinar => webinar.id !== id));
+  const canManageWebinar = (webinarId: string) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin') return true;
+    
+    const webinar = webinars.find(w => w.id === webinarId);
+    return webinar?.createdBy === currentUser.id;
   };
 
   return (
     <WebinarContext.Provider value={{
-      webinars: getAccessibleWebinars(),
+      webinars: getUserWebinars(),
       currentWebinar,
       addWebinar,
       updateWebinar,
       removeWebinar,
-      setCurrentWebinar
+      setCurrentWebinar,
+      canManageWebinar
     }}>
       {children}
     </WebinarContext.Provider>

@@ -67,8 +67,9 @@ export interface Webinar {
 export interface WebinarState {
   webinars: Webinar[];
   currentWebinar: Webinar | null;
-  addWebinar: (webinar: Omit<Webinar, 'id'>) => void;
+  addWebinar: (webinar: Omit<Webinar, 'id'>) => Webinar | null;
   updateWebinar: (id: string, webinar: Partial<Webinar>) => void;
   removeWebinar: (id: string) => void;
   setCurrentWebinar: (webinar: Webinar | null) => void;
+  canManageWebinar: (webinarId: string) => boolean;
 }

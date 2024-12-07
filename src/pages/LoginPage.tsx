@@ -17,7 +17,7 @@ const LoginPage: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const navigate = useNavigate();
-  const { login, register, isAuthenticated, users } = useAuth();
+  const { login, addUser, isAuthenticated, users } = useAuth();
   const { settings } = useSettings();
 
   if (isAuthenticated) {
@@ -80,7 +80,16 @@ const LoginPage: React.FC = () => {
         return;
       }
 
-      if (await register({ name, email, password, company, phone, selectedPlanId })) {
+      const registrationSuccess = await addUser({
+        name,
+        email,
+        password,
+        company,
+        phone,
+        selectedPlanId
+      });
+
+      if (registrationSuccess) {
         setSuccess(true);
         // Reset form
         setName('');
