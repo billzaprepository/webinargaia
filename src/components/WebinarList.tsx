@@ -23,19 +23,25 @@ const WebinarList: React.FC = () => {
     navigate(`/webinar/${slug}`);
   };
 
+  // Check if user can create webinars
+  const canCreateWebinar = currentUser?.role === 'admin' || 
+    currentUser?.subscription?.enabledFunctionalities?.includes('create_webinar');
+
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
           <Video size={24} />
-          Webinars
+          Meus Webinars
         </h2>
-        <Link
-          to="/admin/webinar/new"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Criar Novo Webinar
-        </Link>
+        {canCreateWebinar && (
+          <Link
+            to="/admin/webinar/new"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Criar Novo Webinar
+          </Link>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -74,15 +80,13 @@ const WebinarList: React.FC = () => {
                 >
                   <Edit2 size={20} />
                 </Link>
-                {(currentUser?.role === 'admin' || webinar.createdBy === currentUser?.id) && (
-                  <button
-                    onClick={() => removeWebinar(webinar.id)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                    title="Excluir Webinar"
-                  >
-                    <Trash2 size={20} />
-                  </button>
-                )}
+                <button
+                  onClick={() => removeWebinar(webinar.id)}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                  title="Excluir Webinar"
+                >
+                  <Trash2 size={20} />
+                </button>
               </div>
             </div>
           </div>
@@ -90,7 +94,11 @@ const WebinarList: React.FC = () => {
 
         {webinars.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            Nenhum webinar criado ainda.
+            {canCreateWebinar ? (
+              'Nenhum webinar criado ainda.'
+            ) : (
+              'Você não tem permissão para criar webinars. Entre em contato com o administrador.'
+            )}
           </div>
         )}
       </div>
