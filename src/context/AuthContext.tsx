@@ -20,7 +20,8 @@ const plans: Plan[] = [
     maxViewers: 100,
     storageLimit: 10,
     customization: false,
-    analytics: false
+    analytics: false,
+    duration: 30
   }
 ];
 
@@ -40,7 +41,8 @@ const initialUsers: User[] = [{
     startDate: new Date(),
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     status: 'active',
-    autoRenew: true
+    autoRenew: true,
+    trialEnds: null
   }
 }];
 
@@ -49,14 +51,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const checkUserAccess = (user: User): boolean => {
+    // Admin users always have access
+    if (user.role === 'admin') return true;
+
+    if (!user.subscription) return false;
+
+    const now = new Date();
+    const subscriptionEnd = new Date(user.subscription.endDate);
+    const trialEnd = user.subscription.trialEnds ? new Date(user.subscription.trialEnds) : null;
+
+    // First check if user is blocked
+    if (user.subscription.status === 'blocked') {
+      return false;
+    }
+
+    // Check if trial has ended
+    if (user.subscription.status === 'trial' && trialEnd && now > trialEnd) {
+      updateUser(user.id, {
+        subscription: {
+          ...user.subscription,
+          status: 'expired'
+        }
+      });
+      return false;
+    }
+
+    // Check if subscription has expired
+    if (now > subscriptionEnd && user.subscription.status !== 'trial') {
+      updateUser(user.id, {
+        subscription: {
+          ...user.subscription,
+          status: 'expired'
+        }
+      });
+      return false;
+    }
+
+    // Allow access for active subscriptions and valid trial periods
+    return ['active', 'trial'].includes(user.subscription.status);
+  };
+
   const login = async (email: string, password: string) => {
     const user = users.find(u => u.email === email && u.password === password);
-    if (user) {
-      setCurrentUser(user);
-      setIsAuthenticated(true);
-      return true;
+    if (!user) return false;
+
+    // Check access before allowing login
+    if (!checkUserAccess(user)) {
+      return false;
     }
-    return false;
+
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    updateUser(user.id, { lastLogin: new Date() });
+    return true;
   };
 
   const logout = () => {
@@ -70,12 +118,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
+    // Create trial period (7 days)
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 7);
+
     const newUser: User = {
       ...userData,
       id: Math.random().toString(36).substr(2, 9),
       role: 'customer',
       webinars: [],
-      createdAt: new Date()
+      createdAt: new Date(),
+      subscription: {
+        id: Math.random().toString(36).substr(2, 9),
+        userId: Math.random().toString(36).substr(2, 9),
+        planId: userData.selectedPlanId,
+        startDate: new Date(),
+        endDate: trialEndDate,
+        status: 'trial',
+        autoRenew: false,
+        trialEnds: trialEndDate
+      }
     };
 
     setUsers(prev => [...prev, newUser]);
@@ -88,37 +150,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ));
 
     if (currentUser?.id === id) {
-      setCurrentUser(prev => prev ? { ...prev, ...data } : null);
+      // If updating subscription status to blocked for current user, log them out
+      if (data.subscription?.status === 'blocked') {
+        logout();
+      } else {
+        setCurrentUser(prev => prev ? { ...prev, ...data } : null);
+      }
     }
   };
 
-  const deleteUser = (id: string) => {
-    setUsers(prev => prev.filter(user => user.id !== id));
-    if (currentUser?.id === id) {
-      logout();
-    }
-  };
-
-  const subscribeToPlan = async (userId: string, planId: string) => {
+  const blockUser = (userId: string) => {
     const user = users.find(u => u.id === userId);
-    const plan = plans.find(p => p.id === planId);
+    if (user && user.subscription) {
+      updateUser(userId, {
+        subscription: {
+          ...user.subscription,
+          status: 'blocked'
+        }
+      });
 
-    if (!user || !plan) {
-      return false;
+      // If this is the current user, log them out
+      if (currentUser?.id === userId) {
+        logout();
+      }
     }
+  };
 
-    const subscription = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId,
-      planId,
-      startDate: new Date(),
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      status: 'active' as const,
-      autoRenew: true
-    };
+  const unblockUser = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (user && user.subscription) {
+      // Check if the subscription or trial is still valid
+      const now = new Date();
+      const subscriptionEnd = new Date(user.subscription.endDate);
+      const trialEnd = user.subscription.trialEnds ? new Date(user.subscription.trialEnds) : null;
 
-    updateUser(userId, { subscription });
-    return true;
+      let newStatus: 'active' | 'trial' | 'expired' = 'active';
+
+      if (user.subscription.status === 'trial' && trialEnd && now <= trialEnd) {
+        newStatus = 'trial';
+      } else if (now > subscriptionEnd) {
+        newStatus = 'expired';
+      }
+
+      updateUser(userId, {
+        subscription: {
+          ...user.subscription,
+          status: newStatus
+        }
+      });
+    }
   };
 
   return (
@@ -130,8 +210,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logout, 
       register,
       updateUser,
-      deleteUser,
-      subscribeToPlan
+      blockUser,
+      unblockUser
     }}>
       {children}
     </AuthContext.Provider>

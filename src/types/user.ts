@@ -1,4 +1,9 @@
-import { Webinar } from './webinar';
+export interface UserFunctionality {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+}
 
 export interface Plan {
   id: string;
@@ -8,9 +13,11 @@ export interface Plan {
   features: string[];
   maxWebinars: number;
   maxViewers: number;
-  storageLimit: number; // in GB
+  storageLimit: number;
   customization: boolean;
   analytics: boolean;
+  duration?: number;
+  functionalities: string[];
 }
 
 export interface Subscription {
@@ -19,8 +26,10 @@ export interface Subscription {
   planId: string;
   startDate: Date;
   endDate: Date;
-  status: 'active' | 'cancelled' | 'expired';
+  status: 'active' | 'cancelled' | 'expired' | 'blocked' | 'trial';
   autoRenew: boolean;
+  trialEnds: Date | null;
+  enabledFunctionalities: string[];
 }
 
 export interface User {
@@ -47,4 +56,6 @@ export interface UserState {
   updateUser: (id: string, data: Partial<User>) => void;
   deleteUser: (id: string) => void;
   subscribeToPlan: (userId: string, planId: string) => Promise<boolean>;
+  blockUser: (userId: string) => void;
+  unblockUser: (userId: string) => void;
 }

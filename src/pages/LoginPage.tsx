@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Lock, Mail, User, Building2, Phone } from 'lucide-react';
+import { Lock, Mail, User, Building2, Phone, Package, AlertCircle, ExternalLink, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
+import { Plan } from '../types/user';
 
 const LoginPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -10,26 +12,65 @@ const LoginPage: React.FC = () => {
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [phone, setPhone] = useState('');
+  const [selectedPlanId, setSelectedPlanId] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
   const navigate = useNavigate();
-  const { login, register, isAuthenticated } = useAuth();
+  const { login, register, isAuthenticated, users } = useAuth();
+  const { settings } = useSettings();
 
   if (isAuthenticated) {
     return <Navigate to="/admin" replace />;
   }
 
+  const selectedPlan = settings.plans.find(plan => plan.id === selectedPlanId);
+
+  const BlockedUserMessage = () => (
+    <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md mb-6">
+      <div className="flex items-start">
+        <AlertCircle className="w-5 h-5 text-red-500 mr-2 mt-0.5" />
+        <div>
+          <p className="text-sm text-red-700">Seu acesso está bloqueado. Entre em contato com o suporte.</p>
+          <div className="mt-2 space-y-2">
+            <p className="text-sm text-red-600">
+              Email: suporte@bizsmart.com.br<br />
+              Telefone: (62) 9 8146-5854
+            </p>
+            <a
+              href="https://bizsmart.com.br/suporte-webinar"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700 bg-red-100 px-3 py-1.5 rounded-md"
+            >
+              <ExternalLink size={16} />
+              Chamar Suporte
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsBlocked(false);
 
     if (isLogin) {
-      if (await login(email, password)) {
-        navigate('/admin');
+      const loginSuccess = await login(email, password);
+      if (!loginSuccess) {
+        const user = users.find(u => u.email === email);
+        if (user?.subscription?.status === 'blocked') {
+          setIsBlocked(true);
+        } else {
+          setError('Email ou senha incorretos');
+        }
       } else {
-        setError('Email ou senha incorretos');
+        navigate('/admin');
       }
     } else {
-      if (!name || !email || !password) {
+      if (!name || !email || !password || !company || !phone || !selectedPlanId) {
         setError('Preencha todos os campos obrigatórios');
         return;
       }
@@ -39,11 +80,20 @@ const LoginPage: React.FC = () => {
         return;
       }
 
-      if (await register({ name, email, password, company, phone })) {
-        // Auto-login after successful registration
-        if (await login(email, password)) {
-          navigate('/admin');
-        }
+      if (await register({ name, email, password, company, phone, selectedPlanId })) {
+        setSuccess(true);
+        // Reset form
+        setName('');
+        setEmail('');
+        setPassword('');
+        setCompany('');
+        setPhone('');
+        setSelectedPlanId('');
+        // Switch to login form after 2 seconds
+        setTimeout(() => {
+          setIsLogin(true);
+          setSuccess(false);
+        }, 2000);
       } else {
         setError('Este email já está cadastrado');
       }
@@ -64,12 +114,20 @@ const LoginPage: React.FC = () => {
             {isLogin ? 'Acesso Administrativo' : 'Criar Conta'}
           </h2>
 
+          {success && (
+            <div className="bg-green-50 text-green-500 p-3 rounded-md text-sm text-center mb-6">
+              Conta criada com sucesso! Redirecionando para o login...
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
+            {isBlocked ? (
+              <BlockedUserMessage />
+            ) : error ? (
               <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm text-center">
                 {error}
               </div>
-            )}
+            ) : null}
 
             {!isLogin && (
               <div>
@@ -128,7 +186,7 @@ const LoginPage: React.FC = () => {
               <>
                 <div>
                   <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
-                    Empresa (opcional)
+                    Empresa *
                   </label>
                   <div className="relative">
                     <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -145,7 +203,7 @@ const LoginPage: React.FC = () => {
 
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                    Telefone (opcional)
+                    Telefone *
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -158,6 +216,47 @@ const LoginPage: React.FC = () => {
                       placeholder="(00) 00000-0000"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label htmlFor="plan" className="block text-sm font-medium text-gray-700 mb-1">
+                    Plano *
+                  </label>
+                  <div className="relative">
+                    <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <select
+                      id="plan"
+                      value={selectedPlanId}
+                      onChange={(e) => setSelectedPlanId(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Selecione um plano</option>
+                      {settings.plans.map((plan: Plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} - R$ {plan.price}/mês
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedPlan && (
+                    <div className="mt-4 bg-gray-50 rounded-lg p-4">
+                      <h3 className="text-sm font-medium text-gray-700 mb-2">
+                        {selectedPlan.name} - Funcionalidades Incluídas:
+                      </h3>
+                      <ul className="space-y-2">
+                        {selectedPlan.features.map((feature, index) => (
+                          <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
+                            <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="mt-3 text-xs text-gray-500">
+                        * 7 dias de teste grátis incluídos
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -175,6 +274,8 @@ const LoginPage: React.FC = () => {
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError('');
+                setSuccess(false);
+                setIsBlocked(false);
               }}
               className="text-blue-600 hover:text-blue-700 text-sm font-medium"
             >
