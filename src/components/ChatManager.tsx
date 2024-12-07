@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Clock, User } from 'lucide-react';
+import { Plus, Trash2, Clock, User, Edit2, X, Save } from 'lucide-react';
 import { ChatMessage } from '../types/webinar';
 
 interface ChatManagerProps {
@@ -8,6 +8,7 @@ interface ChatManagerProps {
 }
 
 const ChatManager: React.FC<ChatManagerProps> = ({ messages, onUpdate }) => {
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState({
     username: '',
     message: '',
@@ -26,15 +27,46 @@ const ChatManager: React.FC<ChatManagerProps> = ({ messages, onUpdate }) => {
     };
 
     onUpdate([...messages, message].sort((a, b) => a.scheduledTime - b.scheduledTime));
+    resetForm();
+  };
+
+  const handleEditMessage = (message: ChatMessage) => {
+    setEditingId(message.id);
+    setNewMessage({
+      username: message.username,
+      message: message.message,
+      scheduledTime: message.scheduledTime
+    });
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+
+    const timestamp = new Date(Date.now() + newMessage.scheduledTime * 1000)
+      .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    const updatedMessages = messages.map(msg => 
+      msg.id === editingId
+        ? { ...msg, ...newMessage, timestamp }
+        : msg
+    );
+
+    onUpdate(updatedMessages.sort((a, b) => a.scheduledTime - b.scheduledTime));
+    resetForm();
+  };
+
+  const handleRemoveMessage = (id: string) => {
+    onUpdate(messages.filter(msg => msg.id !== id));
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
     setNewMessage({
       username: '',
       message: '',
       scheduledTime: 0
     });
-  };
-
-  const handleRemoveMessage = (id: string) => {
-    onUpdate(messages.filter(msg => msg.id !== id));
   };
 
   const formatTime = (seconds: number) => {
@@ -45,7 +77,7 @@ const ChatManager: React.FC<ChatManagerProps> = ({ messages, onUpdate }) => {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleAddMessage} className="space-y-4">
+      <form onSubmit={editingId ? handleSaveEdit : handleAddMessage} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -90,13 +122,35 @@ const ChatManager: React.FC<ChatManagerProps> = ({ messages, onUpdate }) => {
           </div>
         </div>
 
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-        >
-          <Plus size={20} />
-          Adicionar Mensagem
-        </button>
+        <div className="flex gap-2">
+          {editingId ? (
+            <>
+              <button
+                type="submit"
+                className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Save size={20} />
+                Salvar Alterações
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+              >
+                <X size={20} />
+                Cancelar
+              </button>
+            </>
+          ) : (
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <Plus size={20} />
+              Adicionar Mensagem
+            </button>
+          )}
+        </div>
       </form>
 
       <div className="space-y-4">
@@ -117,12 +171,22 @@ const ChatManager: React.FC<ChatManagerProps> = ({ messages, onUpdate }) => {
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => handleRemoveMessage(msg.id)}
-                className="text-red-500 hover:text-red-700 p-2"
-              >
-                <Trash2 size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleEditMessage(msg)}
+                  className="text-blue-500 hover:text-blue-700 p-2"
+                  disabled={editingId !== null}
+                >
+                  <Edit2 size={20} />
+                </button>
+                <button
+                  onClick={() => handleRemoveMessage(msg.id)}
+                  className="text-red-500 hover:text-red-700 p-2"
+                  disabled={editingId !== null}
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
             </div>
           ))}
 

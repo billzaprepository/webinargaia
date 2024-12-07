@@ -1,17 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Clock, Calendar, MessageSquare, Video, Palette, MousePointer, ArrowLeft } from 'lucide-react';
+import { Clock, Calendar, MessageSquare, Video, Palette, MousePointer, ArrowLeft, Save } from 'lucide-react';
 import { useWebinar } from '../context/WebinarContext';
 import VideoUpload from './VideoUpload';
 import ChatManager from './ChatManager';
 import CTAManager from './CTAManager';
 import ThemeManager from './ThemeManager';
+import TimerSettings from './TimerSettings';
 
 const AdminPanel: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { webinars, updateWebinar } = useWebinar();
   const webinar = webinars.find(w => w.id === id);
+  const [isSaving, setIsSaving] = useState(false);
+  const [scheduleData, setScheduleData] = useState({
+    startTime: webinar ? new Date(webinar.schedule.startTime).toISOString().slice(0, 16) : '',
+    endTime: webinar ? new Date(webinar.schedule.endTime).toISOString().slice(0, 16) : ''
+  });
 
   if (!webinar) {
     return (
@@ -22,18 +28,28 @@ const AdminPanel: React.FC = () => {
   }
 
   const handleDateChange = (field: 'startTime' | 'endTime', value: string) => {
+    setScheduleData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSave = () => {
+    setIsSaving(true);
+    const startTime = new Date(scheduleData.startTime);
+    const endTime = new Date(scheduleData.endTime);
+
     updateWebinar(webinar.id, {
       schedule: {
         ...webinar.schedule,
-        [field]: new Date(value)
+        startTime,
+        endTime
       }
     });
-  };
 
-  const formatDateTimeLocal = (date: Date) => {
-    return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
+    setTimeout(() => {
+      setIsSaving(false);
+    }, 1000);
   };
 
   return (
@@ -45,6 +61,28 @@ const AdminPanel: React.FC = () => {
         >
           <ArrowLeft size={20} />
           <span>Voltar ao Menu</span>
+        </button>
+
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
+            isSaving 
+              ? 'bg-green-100 text-green-700'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          }`}
+        >
+          {isSaving ? (
+            <>
+              <Save size={20} className="animate-pulse" />
+              Salvando...
+            </>
+          ) : (
+            <>
+              <Save size={20} />
+              Salvar Alterações
+            </>
+          )}
         </button>
       </div>
 
@@ -75,7 +113,7 @@ const AdminPanel: React.FC = () => {
                 <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="datetime-local"
-                  value={formatDateTimeLocal(webinar.schedule.startTime)}
+                  value={scheduleData.startTime}
                   onChange={(e) => handleDateChange('startTime', e.target.value)}
                   className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
@@ -90,7 +128,7 @@ const AdminPanel: React.FC = () => {
                 <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="datetime-local"
-                  value={formatDateTimeLocal(webinar.schedule.endTime)}
+                  value={scheduleData.endTime}
                   onChange={(e) => handleDateChange('endTime', e.target.value)}
                   className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
@@ -105,10 +143,11 @@ const AdminPanel: React.FC = () => {
                 {window.location.origin}/webinar/{webinar.slug}
               </code>
               <button
-                onClick={() => navigator.clipboard.writeText(`${window.location.origin}/webinar/${webinar.slug}`)}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                onClick={() => navigate(`/webinar/${webinar.slug}`)}
+                className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
               >
-                Copiar
+                <span>Acessar</span>
+                <MousePointer size={14} />
               </button>
             </div>
           </div>
@@ -132,8 +171,19 @@ const AdminPanel: React.FC = () => {
           Botões de CTA
         </h2>
         <CTAManager
-          ctaButtons={webinar.ctaButtons || []}
+          ctaButtons={webinar.ctaButtons}
           onUpdate={(buttons) => updateWebinar(webinar.id, { ctaButtons: buttons })}
+        />
+      </div>
+
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+          <Clock size={24} />
+          Configurações do Cronômetro
+        </h2>
+        <TimerSettings
+          theme={webinar.theme}
+          onUpdate={(theme) => updateWebinar(webinar.id, { theme })}
         />
       </div>
 

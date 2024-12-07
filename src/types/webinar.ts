@@ -5,6 +5,32 @@ export interface WebinarTheme {
   chatBackgroundColor: string;
   chatTextColor: string;
   fontFamily: string;
+  timer?: {
+    textColor: string;
+    backgroundColor: string;
+    opacity: string;
+    position: 'above' | 'below' | 'left' | 'right';
+    showAt?: {
+      minutes: number;
+      seconds: number;
+    };
+    duration: {
+      minutes: number;
+      seconds: number;
+    };
+  };
+}
+
+export interface CTAButton {
+  id: string;
+  text: string;
+  url: string;
+  color: string;
+  showAt: number;
+  duration: number;
+  position?: 'above' | 'below' | 'left' | 'right';
+  backgroundColor?: string;
+  opacity?: string;
 }
 
 export interface WebinarSchedule {
@@ -21,15 +47,6 @@ export interface ChatMessage {
   message: string;
   timestamp: string;
   scheduledTime: number;
-}
-
-export interface CTAButton {
-  id: string;
-  text: string;
-  url: string;
-  color: string;
-  showAt: number;
-  duration: number;
 }
 
 export interface Webinar {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CTAButton } from '../types/webinar';
+import CountdownTimer from './CountdownTimer';
 
 interface CTADisplayProps {
   buttons: CTAButton[];
@@ -26,21 +27,48 @@ const CTADisplay: React.FC<CTADisplayProps> = ({ buttons, webinarStartTime }) =>
     return () => clearInterval(interval);
   }, [buttons, webinarStartTime]);
 
+  const handleButtonExpire = (buttonId: string) => {
+    setVisibleButtons(prev => prev.filter(button => button.id !== buttonId));
+  };
+
   if (visibleButtons.length === 0) return null;
+
+  const getTimerPosition = (position: string = 'above') => {
+    switch (position) {
+      case 'below':
+        return 'flex-col-reverse';
+      case 'left':
+        return 'flex-row';
+      case 'right':
+        return 'flex-row-reverse';
+      default:
+        return 'flex-col';
+    }
+  };
 
   return (
     <div className="absolute bottom-20 left-0 right-0 flex justify-center gap-4 p-4">
       {visibleButtons.map(button => (
-        <a
-          key={button.id}
-          href={button.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:opacity-90 transition-opacity animate-bounce"
-          style={{ backgroundColor: button.color }}
+        <div 
+          key={button.id} 
+          className={`relative flex items-center gap-2 ${getTimerPosition(button.position)}`}
         >
-          {button.text}
-        </a>
+          <CountdownTimer
+            duration={button.duration}
+            onComplete={() => handleButtonExpire(button.id)}
+            backgroundColor={button.backgroundColor}
+            opacity={button.opacity}
+          />
+          <a
+            href={button.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:opacity-90 transition-opacity animate-bounce"
+            style={{ backgroundColor: button.color }}
+          >
+            {button.text}
+          </a>
+        </div>
       ))}
     </div>
   );

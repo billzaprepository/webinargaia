@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AdminPanel from '../components/AdminPanel';
-import UserManagement from '../components/UserManagement';
+import UserManagementDashboard from '../components/UserManagementDashboard';
 import WebinarList from '../components/WebinarList';
 import WebinarForm from '../components/WebinarForm';
 import { useAuth } from '../context/AuthContext';
@@ -20,7 +20,7 @@ const AdminPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-800">Painel Administrativo</h1>
           <div className="flex items-center gap-4">
@@ -40,7 +40,7 @@ const AdminPage: React.FC = () => {
         <Routes>
           <Route path="/" element={
             <>
-              {currentUser?.role === 'admin' && <UserManagement />}
+              {currentUser?.role === 'admin' && <UserManagementDashboard />}
               <WebinarList />
             </>
           } />
