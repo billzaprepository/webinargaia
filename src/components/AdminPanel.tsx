@@ -6,12 +6,12 @@ import VideoUpload from './VideoUpload';
 import ChatManager from './ChatManager';
 import CTAManager from './CTAManager';
 import ThemeManager from './ThemeManager';
-import TimerSettings from './TimerSettings';
+import WebinarSettingsManager from './WebinarSettingsManager';
 
 const AdminPanel: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { webinars, updateWebinar } = useWebinar();
+  const { webinars, updateWebinar, canManageWebinar } = useWebinar();
   const webinar = webinars.find(w => w.id === id);
   const [isSaving, setIsSaving] = useState(false);
   const [scheduleData, setScheduleData] = useState({
@@ -23,6 +23,14 @@ const AdminPanel: React.FC = () => {
     return (
       <div className="text-center py-8">
         <p className="text-gray-600">Webinar não encontrado.</p>
+      </div>
+    );
+  }
+
+  if (!canManageWebinar(webinar.id)) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-600">Você não tem permissão para editar este webinar.</p>
       </div>
     );
   }
@@ -85,6 +93,13 @@ const AdminPanel: React.FC = () => {
           )}
         </button>
       </div>
+
+      <WebinarSettingsManager
+        title={webinar.title}
+        description={webinar.description}
+        theme={webinar.theme}
+        onUpdate={(updates) => updateWebinar(webinar.id, updates)}
+      />
 
       <div className="bg-white rounded-lg shadow-lg p-6">
         <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
@@ -173,17 +188,6 @@ const AdminPanel: React.FC = () => {
         <CTAManager
           ctaButtons={webinar.ctaButtons}
           onUpdate={(buttons) => updateWebinar(webinar.id, { ctaButtons: buttons })}
-        />
-      </div>
-
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
-          <Clock size={24} />
-          Configurações do Cronômetro
-        </h2>
-        <TimerSettings
-          theme={webinar.theme}
-          onUpdate={(theme) => updateWebinar(webinar.id, { theme })}
         />
       </div>
 
