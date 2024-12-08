@@ -1,18 +1,19 @@
 import { Client } from 'minio';
 import { v4 as uuidv4 } from 'uuid';
+import { env } from '../config/environment';
 
-const BUCKET_NAME = 'webinar-videos';
+const BUCKET_NAME = env.MINIO_BUCKET_NAME;
 
 class MinioService {
   private client: Client;
 
   constructor() {
     this.client = new Client({
-      endPoint: 'localhost',
-      port: 9000,
-      useSSL: false,
-      accessKey: 'minioadmin',
-      secretKey: 'minioadmin'
+      endPoint: env.MINIO_ENDPOINT,
+      port: env.MINIO_PORT,
+      useSSL: env.MINIO_USE_SSL,
+      accessKey: env.MINIO_ACCESS_KEY,
+      secretKey: env.MINIO_SECRET_KEY
     });
     this.initBucket();
   }
@@ -92,7 +93,7 @@ class MinioService {
   }
 
   getVideoUrl(objectName: string): string {
-    return `http://localhost:9000/${BUCKET_NAME}/${objectName}`;
+    return `https://${env.MINIO_ENDPOINT}/${BUCKET_NAME}/${objectName}`;
   }
 }
 
