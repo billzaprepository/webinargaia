@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
       port: Number(env.PORT) || 3000,
     },
     preview: {
-      host: true,
+      host: '0.0.0.0',
       port: Number(env.PORT) || 3000,
     },
     define: {

@@ -31,7 +31,8 @@ class StorageService {
         Bucket: BUCKET_NAME,
         Key: key,
         Body: buffer,
-        ContentType: file.type
+        ContentType: file.type,
+        ACL: 'public-read'
       });
 
       await this.s3Client.send(command);
@@ -53,6 +54,14 @@ class StorageService {
       console.error('Error deleting file:', error);
       throw error;
     }
+  }
+
+  async getSignedUrl(key: string, expiresIn = 3600): Promise<string> {
+    const command = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key
+    });
+    return getSignedUrl(this.s3Client, command, { expiresIn });
   }
 
   private getPublicUrl(key: string): string {
