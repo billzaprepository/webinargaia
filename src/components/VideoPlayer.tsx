@@ -10,6 +10,7 @@ interface VideoPlayerProps {
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasEnded, setHasEnded] = useState(false);
   const [hasAttemptedPlay, setHasAttemptedPlay] = useState(false);
@@ -36,7 +37,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
     const attemptPlay = async () => {
       if (videoRef.current && !isPlaying && !hasEnded) {
         try {
-          // Disable all native controls and features
           videoRef.current.controls = false;
           videoRef.current.controlsList = 'nodownload noplaybackrate nofullscreen noremoteplayback';
           videoRef.current.disablePictureInPicture = true;
@@ -105,7 +105,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
     if (videoRef.current) {
       videoRef.current.addEventListener('ended', handleVideoEnd);
       
-      // Prevent seeking
       videoRef.current.addEventListener('seeking', (e) => {
         e.preventDefault();
         if (videoRef.current) {
@@ -113,7 +112,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
         }
       });
       
-      // Prevent time updates
       videoRef.current.addEventListener('timeupdate', (e) => {
         e.preventDefault();
       });
@@ -136,6 +134,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
         videoRef.current.removeEventListener('ended', handleVideoEnd);
         videoRef.current.removeEventListener('seeking', () => {});
         videoRef.current.removeEventListener('timeupdate', () => {});
+        
+        // Properly cleanup video element
+        videoRef.current.pause();
+        videoRef.current.src = '';
+        videoRef.current.load();
       }
     };
   }, [webinar.schedule.startTime, webinar.schedule.endTime, isPlaying, isLive, hasAttemptedPlay, hasEnded, volume]);
@@ -150,11 +153,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
   };
 
   const handleFullscreen = () => {
-    if (videoRef.current) {
+    if (videoContainerRef.current) {
       if (document.fullscreenElement) {
         document.exitFullscreen();
       } else {
-        videoRef.current.requestFullscreen();
+        videoContainerRef.current.requestFullscreen();
       }
     }
   };
@@ -181,7 +184,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
   );
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group">
+    <div ref={videoContainerRef} className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group">
       {webinar.video ? (
         <>
           <video
