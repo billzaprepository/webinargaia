@@ -1,52 +1,36 @@
-export interface WebinarTheme {
-  primaryColor: string;
-  backgroundColor: string;
-  headerColor: string;
-  chatBackgroundColor: string;
-  chatTextColor: string;
-  fontFamily: string;
-  timer?: {
-    textColor: string;
-    backgroundColor: string;
-    opacity: string;
-    position: 'above' | 'below' | 'left' | 'right';
-    showAt?: {
-      minutes: number;
-      seconds: number;
-    };
-    duration: {
-      minutes: number;
-      seconds: number;
-    };
-  };
+import { WebinarTheme } from './theme';
+
+export interface GTMSettings {
+  containerId: string;
+  enabled: boolean;
+  trackPageView: boolean;
+  trackEvents: boolean;
+  trackEcommerce: boolean;
 }
 
-export interface CTAButton {
-  id: string;
-  text: string;
-  url: string;
-  color: string;
-  showAt: number;
-  duration: number;
-  position?: 'above' | 'below' | 'left' | 'right';
-  backgroundColor?: string;
-  opacity?: string;
+export interface MetaPixelSettings {
+  pixelId: string;
+  enabled: boolean;
+  trackPageView: boolean;
+  trackConversion: boolean;
+  trackSubscription: boolean;
 }
 
-export interface WebinarSchedule {
-  startTime: Date;
-  endTime: Date;
-  title: string;
-  description: string;
-  status: 'scheduled' | 'live' | 'ended';
-}
-
-export interface ChatMessage {
-  id: string;
-  username: string;
-  message: string;
-  timestamp: string;
-  scheduledTime: number;
+export interface WebinarAnalytics {
+  totalViews: number;
+  uniqueViewers: number;
+  averageWatchTime: number;
+  engagementRate: number;
+  peakViewers: number;
+  viewerHistory: {
+    timestamp: Date;
+    count: number;
+  }[];
+  chatMessages: number;
+  ctaClicks: {
+    buttonId: string;
+    clicks: number;
+  }[];
 }
 
 export interface Webinar {
@@ -62,14 +46,9 @@ export interface Webinar {
   isActive: boolean;
   ctaButtons: CTAButton[];
   theme: WebinarTheme;
+  analytics: WebinarAnalytics;
+  metaPixel?: MetaPixelSettings;
+  gtm?: GTMSettings;
 }
 
-export interface WebinarState {
-  webinars: Webinar[];
-  currentWebinar: Webinar | null;
-  addWebinar: (webinar: Omit<Webinar, 'id'>) => Webinar | null;
-  updateWebinar: (id: string, webinar: Partial<Webinar>) => void;
-  removeWebinar: (id: string) => void;
-  setCurrentWebinar: (webinar: Webinar | null) => void;
-  canManageWebinar: (webinarId: string) => boolean;
-}
+// ... rest of the types ...

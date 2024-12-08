@@ -2,23 +2,28 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, Calendar, MessageSquare, Video, Palette, MousePointer, ArrowLeft, Save } from 'lucide-react';
 import { useWebinar } from '../context/WebinarContext';
+import { usePermissions } from '../hooks/usePermissions';
 import VideoUpload from './VideoUpload';
 import ChatManager from './ChatManager';
 import CTAManager from './CTAManager';
 import ThemeManager from './ThemeManager';
-import WebinarSettingsManager from './WebinarSettingsManager';
+import WebinarBasicSettings from './WebinarBasicSettings';
+import TimerSettings from './TimerSettings';
+import MetaPixelSettings from './MetaPixelSettings';
+import GoogleTagManagerSettings from './GoogleTagManagerSettings';
+import WebhookSettings from './WebhookSettings';
 
 const AdminPanel: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { webinars, updateWebinar, canManageWebinar } = useWebinar();
-  const webinar = webinars.find(w => w.id === id);
+  const permissions = usePermissions();
   const [isSaving, setIsSaving] = useState(false);
-  const [scheduleData, setScheduleData] = useState({
-    startTime: webinar ? new Date(webinar.schedule.startTime).toISOString().slice(0, 16) : '',
-    endTime: webinar ? new Date(webinar.schedule.endTime).toISOString().slice(0, 16) : ''
-  });
 
+  // Find the webinar by ID
+  const webinar = webinars.find(w => w.id === id);
+
+  // If webinar not found or user can't manage it, show error
   if (!webinar) {
     return (
       <div className="text-center py-8">
@@ -35,26 +40,8 @@ const AdminPanel: React.FC = () => {
     );
   }
 
-  const handleDateChange = (field: 'startTime' | 'endTime', value: string) => {
-    setScheduleData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
   const handleSave = () => {
     setIsSaving(true);
-    const startTime = new Date(scheduleData.startTime);
-    const endTime = new Date(scheduleData.endTime);
-
-    updateWebinar(webinar.id, {
-      schedule: {
-        ...webinar.schedule,
-        startTime,
-        endTime
-      }
-    });
-
     setTimeout(() => {
       setIsSaving(false);
     }, 1000);
@@ -94,12 +81,20 @@ const AdminPanel: React.FC = () => {
         </button>
       </div>
 
-      <WebinarSettingsManager
+      <WebinarBasicSettings
         title={webinar.title}
         description={webinar.description}
-        theme={webinar.theme}
         onUpdate={(updates) => updateWebinar(webinar.id, updates)}
       />
+
+      {permissions.canUseTimer() && (
+        <TimerSettings
+          timer={webinar.theme.timer}
+          onUpdate={(timer) => updateWebinar(webinar.id, {
+            theme: { ...webinar.theme, timer }
+          })}
+        />
+      )}
 
       <div className="bg-white rounded-lg shadow-lg p-6">
         <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
@@ -109,6 +104,7 @@ const AdminPanel: React.FC = () => {
         <VideoUpload
           onVideoChange={(file) => updateWebinar(webinar.id, { video: file })}
           currentVideo={webinar.video}
+          maxSize={permissions.getStorageLimit()}
         />
       </div>
 
@@ -128,8 +124,13 @@ const AdminPanel: React.FC = () => {
                 <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="datetime-local"
-                  value={scheduleData.startTime}
-                  onChange={(e) => handleDateChange('startTime', e.target.value)}
+                  value={new Date(webinar.schedule.startTime).toISOString().slice(0, 16)}
+                  onChange={(e) => updateWebinar(webinar.id, {
+                    schedule: {
+                      ...webinar.schedule,
+                      startTime: new Date(e.target.value)
+                    }
+                  })}
                   className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
@@ -143,8 +144,13 @@ const AdminPanel: React.FC = () => {
                 <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="datetime-local"
-                  value={scheduleData.endTime}
-                  onChange={(e) => handleDateChange('endTime', e.target.value)}
+                  value={new Date(webinar.schedule.endTime).toISOString().slice(0, 16)}
+                  onChange={(e) => updateWebinar(webinar.id, {
+                    schedule: {
+                      ...webinar.schedule,
+                      endTime: new Date(e.target.value)
+                    }
+                  })}
                   className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
@@ -169,38 +175,48 @@ const AdminPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
-          <MessageSquare size={24} />
-          Gerenciar Mensagens do Chat
-        </h2>
-        <ChatManager
-          messages={webinar.messages}
-          onUpdate={(messages) => updateWebinar(webinar.id, { messages })}
-        />
-      </div>
+      {permissions.canManageChat() && (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+            <MessageSquare size={24} />
+            Gerenciar Mensagens do Chat
+          </h2>
+          <ChatManager
+            messages={webinar.messages}
+            onUpdate={(messages) => updateWebinar(webinar.id, { messages })}
+          />
+        </div>
+      )}
 
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
-          <MousePointer size={24} />
-          Botões de CTA
-        </h2>
-        <CTAManager
-          ctaButtons={webinar.ctaButtons}
-          onUpdate={(buttons) => updateWebinar(webinar.id, { ctaButtons: buttons })}
-        />
-      </div>
+      {permissions.canManageCTA() && (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+            <MousePointer size={24} />
+            Botões de CTA
+          </h2>
+          <CTAManager
+            ctaButtons={webinar.ctaButtons}
+            onUpdate={(buttons) => updateWebinar(webinar.id, { ctaButtons: buttons })}
+          />
+        </div>
+      )}
 
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
-          <Palette size={24} />
-          Personalização do Tema
-        </h2>
-        <ThemeManager
-          theme={webinar.theme}
-          onUpdate={(theme) => updateWebinar(webinar.id, { theme })}
-        />
-      </div>
+      {permissions.canCustomizeTheme() && (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+            <Palette size={24} />
+            Personalização do Tema
+          </h2>
+          <ThemeManager
+            theme={webinar.theme}
+            onUpdate={(theme) => updateWebinar(webinar.id, { theme })}
+          />
+        </div>
+      )}
+
+      <MetaPixelSettings />
+      <GoogleTagManagerSettings />
+      <WebhookSettings />
     </div>
   );
 };

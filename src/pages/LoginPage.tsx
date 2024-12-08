@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Lock, Mail, User, Building2, Phone, Package, AlertCircle, ExternalLink, Check } from 'lucide-react';
+import { Mail, User, Building2, Phone, Package, AlertCircle, ExternalLink, Check, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { Plan } from '../types/user';
@@ -91,14 +91,12 @@ const LoginPage: React.FC = () => {
 
       if (registrationSuccess) {
         setSuccess(true);
-        // Reset form
         setName('');
         setEmail('');
         setPassword('');
         setCompany('');
         setPhone('');
         setSelectedPlanId('');
-        // Switch to login form after 2 seconds
         setTimeout(() => {
           setIsLogin(true);
           setSuccess(false);
@@ -114,13 +112,21 @@ const LoginPage: React.FC = () => {
       <div className="max-w-md w-full">
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="flex justify-center mb-6">
-            <div className="p-3 bg-blue-100 rounded-full">
-              <Lock className="w-8 h-8 text-blue-600" />
-            </div>
+            {settings.loginSettings?.logoUrl ? (
+              <img 
+                src={settings.loginSettings.logoUrl} 
+                alt="Logo"
+                className="h-16 w-auto object-contain"
+              />
+            ) : (
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Lock className="w-8 h-8 text-blue-600" />
+              </div>
+            )}
           </div>
           
           <h2 className="text-2xl font-bold text-center text-gray-800 mb-8">
-            {isLogin ? 'Acesso Administrativo' : 'Criar Conta'}
+            {settings.loginSettings?.title || (isLogin ? 'Acesso Administrativo' : 'Criar Conta')}
           </h2>
 
           {success && (
@@ -129,25 +135,24 @@ const LoginPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {isBlocked ? (
-              <BlockedUserMessage />
-            ) : error ? (
-              <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm text-center">
-                {error}
-              </div>
-            ) : null}
+          {isBlocked ? (
+            <BlockedUserMessage />
+          ) : error ? (
+            <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm text-center mb-6">
+              {error}
+            </div>
+          ) : null}
 
+          <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nome *
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                   <input
                     type="text"
-                    id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -158,14 +163,13 @@ const LoginPage: React.FC = () => {
             )}
             
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email *
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="email"
-                  id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -175,14 +179,13 @@ const LoginPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Senha *
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="password"
-                  id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -194,14 +197,13 @@ const LoginPage: React.FC = () => {
             {!isLogin && (
               <>
                 <div>
-                  <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Empresa *
                   </label>
                   <div className="relative">
                     <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                     <input
                       type="text"
-                      id="company"
                       value={company}
                       onChange={(e) => setCompany(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -211,14 +213,13 @@ const LoginPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Telefone *
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                     <input
                       type="tel"
-                      id="phone"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -228,13 +229,12 @@ const LoginPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="plan" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Plano *
                   </label>
                   <div className="relative">
                     <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                     <select
-                      id="plan"
                       value={selectedPlanId}
                       onChange={(e) => setSelectedPlanId(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -261,9 +261,11 @@ const LoginPage: React.FC = () => {
                           </li>
                         ))}
                       </ul>
-                      <div className="mt-3 text-xs text-gray-500">
-                        * 7 dias de teste grátis incluídos
-                      </div>
+                      {selectedPlan.trialMessage && (
+                        <div className="mt-3 text-xs text-gray-500">
+                          * {selectedPlan.trialMessage}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

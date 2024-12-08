@@ -1,27 +1,12 @@
 import React, { useState } from 'react';
-import { DollarSign, Plus, Trash2, Save, Package, Clock, Edit2 } from 'lucide-react';
+import { DollarSign, Plus, Trash2, Save, Package, Clock, Edit2, X } from 'lucide-react';
 import { Plan } from '../types/user';
 import { useSettings } from '../context/SettingsContext';
-import FunctionalityManager from './FunctionalityManager';
-
-const DEFAULT_FEATURES = [
-  'Webinars por mês',
-  'Limite de espectadores',
-  'Armazenamento',
-  'Chat ao vivo',
-  'Relatórios básicos',
-  'Personalização avançada',
-  'Análises detalhadas',
-  'Suporte prioritário',
-  'API disponível',
-  'Treinamento dedicado'
-];
 
 const PlansManagement: React.FC = () => {
   const { settings, updateSettings } = useSettings();
   const [plans, setPlans] = useState<Plan[]>(settings.plans);
   const [isSaving, setIsSaving] = useState(false);
-  const [editingFeature, setEditingFeature] = useState<{planIndex: number, featureIndex: number} | null>(null);
 
   const handleAddPlan = () => {
     const newPlan: Plan = {
@@ -29,14 +14,26 @@ const PlansManagement: React.FC = () => {
       name: 'Novo Plano',
       price: 0,
       description: 'Descrição do plano',
-      features: ['Webinars por mês', 'Limite de espectadores', 'Armazenamento'],
+      features: ['Webinars por mês'],
       maxWebinars: 1,
       maxViewers: 100,
       storageLimit: 1,
       customization: false,
       analytics: false,
       duration: 30,
-      functionalities: []
+      functionalities: [],
+      trialDays: 7,
+      trialMessage: '7 dias de teste grátis incluídos',
+      limits: {
+        maxWebinars: 5,
+        maxStorage: 10,
+        maxViewers: 100,
+        canManageChat: false,
+        canManageCTA: false,
+        canCustomizeTheme: false,
+        canUseTimer: false,
+        canViewAnalytics: false
+      }
     };
     setPlans([...plans, newPlan]);
   };
@@ -50,29 +47,15 @@ const PlansManagement: React.FC = () => {
     setPlans(updatedPlans);
   };
 
-  const handleUpdateFunctionalities = (planIndex: number, functionalities: string[]) => {
+  const handleUpdateLimits = (planIndex: number, field: keyof Plan['limits'], value: any) => {
     const updatedPlans = [...plans];
     updatedPlans[planIndex] = {
       ...updatedPlans[planIndex],
-      functionalities
+      limits: {
+        ...updatedPlans[planIndex].limits,
+        [field]: value
+      }
     };
-    setPlans(updatedPlans);
-  };
-
-  const handleAddFeature = (planIndex: number) => {
-    setEditingFeature({ planIndex, featureIndex: plans[planIndex].features.length });
-  };
-
-  const handleUpdateFeature = (planIndex: number, featureIndex: number, value: string) => {
-    const updatedPlans = [...plans];
-    updatedPlans[planIndex].features[featureIndex] = value;
-    setPlans(updatedPlans);
-    setEditingFeature(null);
-  };
-
-  const handleRemoveFeature = (planIndex: number, featureIndex: number) => {
-    const updatedPlans = [...plans];
-    updatedPlans[planIndex].features.splice(featureIndex, 1);
     setPlans(updatedPlans);
   };
 
@@ -106,7 +89,7 @@ const PlansManagement: React.FC = () => {
         </button>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         {plans.map((plan, planIndex) => (
           <div key={plan.id} className="border rounded-lg p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -151,121 +134,143 @@ const PlansManagement: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Limite de Webinars
-                </label>
-                <input
-                  type="number"
-                  value={plan.maxWebinars}
-                  onChange={(e) => handleUpdatePlan(planIndex, 'maxWebinars', parseInt(e.target.value))}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  min="1"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Limite de Espectadores
-                </label>
-                <input
-                  type="number"
-                  value={plan.maxViewers}
-                  onChange={(e) => handleUpdatePlan(planIndex, 'maxViewers', parseInt(e.target.value))}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  min="1"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Armazenamento (GB)
-                </label>
-                <input
-                  type="number"
-                  value={plan.storageLimit}
-                  onChange={(e) => handleUpdatePlan(planIndex, 'storageLimit', parseInt(e.target.value))}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  min="1"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Duração da Assinatura (dias)
-                </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                  <input
-                    type="number"
-                    value={plan.duration || 30}
-                    onChange={(e) => handleUpdatePlan(planIndex, 'duration', parseInt(e.target.value))}
-                    className="w-full pl-10 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    min="1"
-                  />
-                </div>
-                <p className="mt-1 text-sm text-gray-500">
-                  Após este período, o acesso será bloqueado automaticamente
-                </p>
-              </div>
-
               <div className="md:col-span-2">
-                <FunctionalityManager
-                  enabledFunctionalities={plan.functionalities || []}
-                  onUpdate={(functionalities) => handleUpdateFunctionalities(planIndex, functionalities)}
-                />
-              </div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Limites e Permissões</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Limite de Webinars
+                    </label>
+                    <input
+                      type="number"
+                      value={plan.limits?.maxWebinars || 0}
+                      onChange={(e) => handleUpdateLimits(planIndex, 'maxWebinars', parseInt(e.target.value))}
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      min="0"
+                    />
+                  </div>
 
-              <div className="md:col-span-2">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Funcionalidades Visíveis
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => handleAddFeature(planIndex)}
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                  >
-                    + Adicionar
-                  </button>
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Limite de Espectadores
+                    </label>
+                    <input
+                      type="number"
+                      value={plan.limits?.maxViewers || 0}
+                      onChange={(e) => handleUpdateLimits(planIndex, 'maxViewers', parseInt(e.target.value))}
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      min="0"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  {plan.features.map((feature, featureIndex) => (
-                    <div key={featureIndex} className="flex items-center gap-2">
-                      {editingFeature?.planIndex === planIndex && editingFeature?.featureIndex === featureIndex ? (
-                        <select
-                          value={feature}
-                          onChange={(e) => handleUpdateFeature(planIndex, featureIndex, e.target.value)}
-                          className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          autoFocus
-                          onBlur={() => setEditingFeature(null)}
-                        >
-                          {DEFAULT_FEATURES.map((f) => (
-                            <option key={f} value={f}>{f}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <>
-                          <span className="flex-1">{feature}</span>
-                          <button
-                            type="button"
-                            onClick={() => setEditingFeature({ planIndex, featureIndex })}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFeature(planIndex, featureIndex)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Armazenamento (GB)
+                    </label>
+                    <input
+                      type="number"
+                      value={plan.limits?.maxStorage || 0}
+                      onChange={(e) => handleUpdateLimits(planIndex, 'maxStorage', parseInt(e.target.value))}
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      min="0"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Funcionalidades
+                    </label>
+                    
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={plan.limits?.canManageChat || false}
+                          onChange={(e) => handleUpdateLimits(planIndex, 'canManageChat', e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">Gerenciar Chat</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={plan.limits?.canManageCTA || false}
+                          onChange={(e) => handleUpdateLimits(planIndex, 'canManageCTA', e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">Gerenciar CTAs</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={plan.limits?.canCustomizeTheme || false}
+                          onChange={(e) => handleUpdateLimits(planIndex, 'canCustomizeTheme', e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">Personalizar Tema</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={plan.limits?.canUseTimer || false}
+                          onChange={(e) => handleUpdateLimits(planIndex, 'canUseTimer', e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">Usar Cronômetro</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={plan.limits?.canViewAnalytics || false}
+                          onChange={(e) => handleUpdateLimits(planIndex, 'canViewAnalytics', e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">Visualizar Análises</span>
+                      </label>
                     </div>
-                  ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Clock size={20} />
+                  Período de Teste
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Dias de Teste
+                    </label>
+                    <input
+                      type="number"
+                      value={plan.trialDays || 7}
+                      onChange={(e) => handleUpdatePlan(planIndex, 'trialDays', parseInt(e.target.value))}
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      min="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Mensagem de Teste
+                    </label>
+                    <input
+                      type="text"
+                      value={plan.trialMessage || `${plan.trialDays} dias de teste grátis incluídos`}
+                      onChange={(e) => handleUpdatePlan(planIndex, 'trialMessage', e.target.value)}
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      placeholder="Ex: 7 dias de teste grátis incluídos"
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Esta mensagem será exibida na página de planos
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

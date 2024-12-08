@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, AlertCircle } from 'lucide-react';
 
 interface VideoUploadProps {
   onVideoChange: (file: File | null) => void;
   currentVideo: File | null;
+  maxSize?: number; // in GB
 }
 
-const VideoUpload: React.FC<VideoUploadProps> = ({ onVideoChange, currentVideo }) => {
+const VideoUpload: React.FC<VideoUploadProps> = ({ onVideoChange, currentVideo, maxSize = Infinity }) => {
   const [dragActive, setDragActive] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -19,6 +21,25 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onVideoChange, currentVideo }
     }
   };
 
+  const validateFile = (file: File): boolean => {
+    setError(null);
+    
+    // Check file type
+    if (!file.type.startsWith('video/')) {
+      setError('O arquivo deve ser um vídeo');
+      return false;
+    }
+
+    // Check file size
+    const sizeInGB = file.size / (1024 * 1024 * 1024);
+    if (sizeInGB > maxSize) {
+      setError(`O arquivo excede o limite de ${maxSize}GB do seu plano`);
+      return false;
+    }
+
+    return true;
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -26,7 +47,7 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onVideoChange, currentVideo }
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      if (file.type.startsWith('video/')) {
+      if (validateFile(file)) {
         onVideoChange(file);
       }
     }
@@ -35,16 +56,30 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onVideoChange, currentVideo }
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     if (e.target.files && e.target.files[0]) {
-      onVideoChange(e.target.files[0]);
+      const file = e.target.files[0];
+      if (validateFile(file)) {
+        onVideoChange(file);
+      }
     }
   };
 
   const handleRemove = () => {
     onVideoChange(null);
+    setError(null);
   };
 
   return (
     <div className="w-full">
+      {error && (
+        <div className="mb-4 bg-red-50 text-red-700 p-4 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">Erro ao carregar o vídeo</p>
+            <p className="text-sm">{error}</p>
+          </div>
+        </div>
+      )}
+
       {!currentVideo ? (
         <div
           className={`relative border-2 border-dashed rounded-lg p-8 ${
@@ -67,7 +102,7 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onVideoChange, currentVideo }
               Arraste e solte um vídeo aqui, ou clique para selecionar
             </p>
             <p className="mt-1 text-xs text-gray-500">
-              MP4, WebM ou Ogg (max. 2GB)
+              MP4, WebM ou Ogg (max. {maxSize}GB)
             </p>
           </div>
         </div>

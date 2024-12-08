@@ -4,7 +4,9 @@ import { useWebinar } from '../context/WebinarContext';
 import { useSettings } from '../context/SettingsContext';
 import UserManagement from './UserManagement';
 import PlansManagement from './PlansManagement';
-import { BarChart2, Users, Video, DollarSign, AlertCircle, CheckCircle, XCircle, Search } from 'lucide-react';
+import LoginCustomization from './LoginCustomization';
+import WebhookSettings from './WebhookSettings';
+import { BarChart2, Users, Video, DollarSign, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 
 const UserManagementDashboard: React.FC = () => {
   const { users, currentUser } = useAuth();
@@ -85,7 +87,11 @@ const UserManagementDashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <UserManagement />
-        <PlansManagement />
+        <div className="space-y-8">
+          <PlansManagement />
+          <LoginCustomization />
+          <WebhookSettings />
+        </div>
       </div>
     </div>
   );

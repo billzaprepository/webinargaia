@@ -1,8 +1,12 @@
-export interface UserFunctionality {
-  id: string;
-  name: string;
-  description: string;
-  enabled: boolean;
+export interface PlanLimits {
+  maxWebinars: number;
+  maxStorage: number;
+  maxViewers: number;
+  canManageChat: boolean;
+  canManageCTA: boolean;
+  canCustomizeTheme: boolean;
+  canUseTimer: boolean;
+  canViewAnalytics: boolean;
 }
 
 export interface Plan {
@@ -18,6 +22,16 @@ export interface Plan {
   analytics: boolean;
   duration?: number;
   functionalities?: string[];
+  limits?: PlanLimits;
+  trialDays?: number;
+  trialMessage?: string;
+}
+
+export interface UserFunctionality {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
 }
 
 export interface Subscription {

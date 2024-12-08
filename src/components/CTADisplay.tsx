@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { CTAButton } from '../types/webinar';
 import CountdownTimer from './CountdownTimer';
+import { useWebinar } from '../context/WebinarContext';
 
 interface CTADisplayProps {
   buttons: CTAButton[];
   webinarStartTime: Date;
+  webinarId: string;
 }
 
-const CTADisplay: React.FC<CTADisplayProps> = ({ buttons, webinarStartTime }) => {
+const CTADisplay: React.FC<CTADisplayProps> = ({ buttons, webinarStartTime, webinarId }) => {
   const [visibleButtons, setVisibleButtons] = useState<CTAButton[]>([]);
+  const { updateAnalytics } = useWebinar();
 
   useEffect(() => {
     const checkButtonVisibility = () => {
@@ -26,6 +29,12 @@ const CTADisplay: React.FC<CTADisplayProps> = ({ buttons, webinarStartTime }) =>
     const interval = setInterval(checkButtonVisibility, 1000);
     return () => clearInterval(interval);
   }, [buttons, webinarStartTime]);
+
+  const handleButtonClick = (buttonId: string) => {
+    updateAnalytics(webinarId, {
+      ctaClicks: [{ buttonId, clicks: 1 }]
+    });
+  };
 
   const handleButtonExpire = (buttonId: string) => {
     setVisibleButtons(prev => prev.filter(button => button.id !== buttonId));
@@ -65,6 +74,7 @@ const CTADisplay: React.FC<CTADisplayProps> = ({ buttons, webinarStartTime }) =>
             rel="noopener noreferrer"
             className="px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:opacity-90 transition-opacity animate-bounce"
             style={{ backgroundColor: button.color }}
+            onClick={() => handleButtonClick(button.id)}
           >
             {button.text}
           </a>
