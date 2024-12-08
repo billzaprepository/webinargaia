@@ -6,12 +6,13 @@ const envSchema = z.object({
   STORAGE_TYPE: z.enum(['indexeddb', 'minio']).default('minio'),
   
   // MinIO Configuration
-  MINIO_SERVER_URL: z.string().default('https://gaiawebinar-minio.sy9511.easypanel.host'),
-  MINIO_ROOT_USER: z.string().default('minio'),
-  MINIO_ROOT_PASSWORD: z.string().default('d6442690'),
+  MINIO_SERVER_URL: z.string().default('https://console-gaiawebinar-minio.ay09i1.easypanel.host'),
+  MINIO_ACCESS_KEY: z.string().default('OB2A4cEyCYMBcKIjThk3'),
+  MINIO_SECRET_KEY: z.string().default('x78cFIha5G0IGfrEoyUX7WVyMv8GBPRUkbRnbI6I'),
   MINIO_BUCKET_NAME: z.string().default('webinar-videos'),
   MINIO_PORT: z.number().default(443),
   MINIO_USE_SSL: z.boolean().default(true),
+  MINIO_API_VERSION: z.string().default('s3v4'),
   
   // Video Configuration
   MAX_VIDEO_SIZE_MB: z.number().default(500),
@@ -30,29 +31,16 @@ const envSchema = z.object({
   ENABLE_COMPRESSION: z.boolean().default(false),
 });
 
-// Load environment variables from import.meta.env or process.env
-const loadEnvVariables = () => {
-  const env = import.meta.env || process.env;
-  return {
-    ...envDefaults,
-    MINIO_SERVER_URL: env.VITE_MINIO_SERVER_URL || envDefaults.MINIO_SERVER_URL,
-    MINIO_ROOT_USER: env.VITE_MINIO_ROOT_USER || envDefaults.MINIO_ROOT_USER,
-    MINIO_ROOT_PASSWORD: env.VITE_MINIO_ROOT_PASSWORD || envDefaults.MINIO_ROOT_PASSWORD,
-    MINIO_BUCKET_NAME: env.VITE_MINIO_BUCKET_NAME || envDefaults.MINIO_BUCKET_NAME,
-    MINIO_PORT: Number(env.VITE_MINIO_PORT) || envDefaults.MINIO_PORT,
-    MINIO_USE_SSL: env.VITE_MINIO_USE_SSL === 'true' || envDefaults.MINIO_USE_SSL,
-  };
-};
-
 // Environment variables with defaults
 const envDefaults = {
   STORAGE_TYPE: 'minio',
-  MINIO_SERVER_URL: 'https://gaiawebinar-minio.sy9511.easypanel.host',
-  MINIO_ROOT_USER: 'minio',
-  MINIO_ROOT_PASSWORD: 'd6442690',
+  MINIO_SERVER_URL: 'https://console-gaiawebinar-minio.ay09i1.easypanel.host',
+  MINIO_ACCESS_KEY: 'OB2A4cEyCYMBcKIjThk3',
+  MINIO_SECRET_KEY: 'x78cFIha5G0IGfrEoyUX7WVyMv8GBPRUkbRnbI6I',
   MINIO_BUCKET_NAME: 'webinar-videos',
   MINIO_PORT: 443,
   MINIO_USE_SSL: true,
+  MINIO_API_VERSION: 's3v4',
   MAX_VIDEO_SIZE_MB: 500,
   ALLOWED_VIDEO_TYPES: ['video/mp4', 'video/webm'],
   CHUNK_SIZE_MB: 1,
@@ -61,6 +49,21 @@ const envDefaults = {
   ENABLE_VIDEO_PREVIEW: true,
   ENABLE_CHUNK_UPLOAD: true,
   ENABLE_COMPRESSION: false,
+};
+
+// Load environment variables from import.meta.env or process.env
+const loadEnvVariables = () => {
+  const env = import.meta.env || process.env;
+  return {
+    ...envDefaults,
+    MINIO_SERVER_URL: env.VITE_MINIO_SERVER_URL || envDefaults.MINIO_SERVER_URL,
+    MINIO_ACCESS_KEY: env.VITE_MINIO_ACCESS_KEY || envDefaults.MINIO_ACCESS_KEY,
+    MINIO_SECRET_KEY: env.VITE_MINIO_SECRET_KEY || envDefaults.MINIO_SECRET_KEY,
+    MINIO_BUCKET_NAME: env.VITE_MINIO_BUCKET_NAME || envDefaults.MINIO_BUCKET_NAME,
+    MINIO_PORT: Number(env.VITE_MINIO_PORT) || envDefaults.MINIO_PORT,
+    MINIO_USE_SSL: env.VITE_MINIO_USE_SSL === 'true' || envDefaults.MINIO_USE_SSL,
+    MINIO_API_VERSION: env.VITE_MINIO_API_VERSION || envDefaults.MINIO_API_VERSION,
+  };
 };
 
 // Parse and validate environment variables
@@ -92,9 +95,10 @@ export interface StorageConfig {
     serverUrl: string;
     port: number;
     useSSL: boolean;
-    rootUser: string;
-    rootPassword: string;
+    accessKey: string;
+    secretKey: string;
     bucketName: string;
+    apiVersion: string;
   };
 }
 
@@ -106,9 +110,10 @@ export const getStorageConfig = (): StorageConfig => ({
       serverUrl: env.MINIO_SERVER_URL,
       port: env.MINIO_PORT,
       useSSL: env.MINIO_USE_SSL,
-      rootUser: env.MINIO_ROOT_USER,
-      rootPassword: env.MINIO_ROOT_PASSWORD,
+      accessKey: env.MINIO_ACCESS_KEY,
+      secretKey: env.MINIO_SECRET_KEY,
       bucketName: env.MINIO_BUCKET_NAME,
+      apiVersion: env.MINIO_API_VERSION,
     },
   }),
 });
