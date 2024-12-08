@@ -1,4 +1,18 @@
-import { Timer } from './timer';
+export interface Timer {
+  id: string;
+  showAt: {
+    minutes: number;
+    seconds: number;
+  };
+  duration: {
+    minutes: number;
+    seconds: number;
+  };
+  textColor: string;
+  backgroundColor: string;
+  opacity: string;
+  position: 'above' | 'below' | 'left' | 'right';
+}
 
 export interface WebinarTheme {
   primaryColor: string;
@@ -57,7 +71,6 @@ export interface Webinar {
   schedule: WebinarSchedule;
   messages: ChatMessage[];
   video: File | null;
-  videoUrl?: string;
   createdBy: string;
   isActive: boolean;
   ctaButtons: CTAButton[];
@@ -68,9 +81,9 @@ export interface Webinar {
 export interface WebinarState {
   webinars: Webinar[];
   currentWebinar: Webinar | null;
-  addWebinar: (webinar: Omit<Webinar, 'id' | 'analytics'>) => Promise<Webinar | null>;
-  updateWebinar: (id: string, webinar: Partial<Webinar>) => Promise<void>;
-  removeWebinar: (id: string) => Promise<void>;
+  addWebinar: (webinar: Omit<Webinar, 'id' | 'analytics'>) => Webinar | null;
+  updateWebinar: (id: string, webinar: Partial<Webinar>) => void;
+  removeWebinar: (id: string) => void;
   setCurrentWebinar: (webinar: Webinar | null) => void;
   canManageWebinar: (webinarId: string) => boolean;
   updateAnalytics: (webinarId: string) => void;

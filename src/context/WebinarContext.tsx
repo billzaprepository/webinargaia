@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Webinar, WebinarState, WebinarTheme } from '../types/webinar';
 import { useAuth } from './AuthContext';
-import { storageService } from '../utils/storage';
+import { videoDB } from '../utils/db';
 
 const WebinarContext = createContext<WebinarState | undefined>(undefined);
 
@@ -19,27 +19,26 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [currentWebinar, setCurrentWebinar] = useState<Webinar | null>(null);
   const { currentUser } = useAuth();
 
-  const getUserWebinars = () => {
-    if (!currentUser) return [];
-    if (currentUser.role === 'admin') return webinars;
-    return webinars.filter(webinar => webinar.createdBy === currentUser.id);
-  };
+  // Load stored videos when component mounts
+  useEffect(() => {
+    const loadStoredVideos = async () => {
+      const storedVideos = await videoDB.getAllVideos();
+      setWebinars(prev => prev.map(webinar => {
+        const storedVideo = storedVideos.find(v => v.id === webinar.id);
+        return storedVideo ? { ...webinar, video: storedVideo.file } : webinar;
+      }));
+    };
+
+    loadStoredVideos();
+  }, []);
 
   const addWebinar = async (newWebinar: Omit<Webinar, 'id' | 'analytics'>) => {
     if (!currentUser) return null;
     
     const webinarId = Math.random().toString(36).substr(2, 9);
-    let videoUrl: string | undefined;
-
-    if (newWebinar.video) {
-      const key = `${webinarId}/${newWebinar.video.name}`;
-      videoUrl = await storageService.uploadFile(newWebinar.video, key);
-    }
-
     const webinar: Webinar = {
       ...newWebinar,
       id: webinarId,
-      videoUrl,
       createdBy: currentUser.id,
       ctaButtons: [],
       theme: defaultTheme,
@@ -53,6 +52,10 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
         lastUpdated: new Date()
       }
     };
+
+    if (webinar.video) {
+      await videoDB.saveVideo(webinarId, webinar.video);
+    }
     
     setWebinars(prev => [...prev, webinar]);
     return webinar;
@@ -60,11 +63,9 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateWebinar = async (id: string, updates: Partial<Webinar>) => {
     if (!currentUser) return;
-
+    
     if (updates.video) {
-      const key = `${id}/${updates.video.name}`;
-      const videoUrl = await storageService.uploadFile(updates.video, key);
-      updates.videoUrl = videoUrl;
+      await videoDB.saveVideo(id, updates.video);
     }
 
     setWebinars(prev => prev.map(webinar => {
@@ -78,18 +79,19 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const removeWebinar = async (id: string) => {
     if (!currentUser) return;
     
-    const webinar = webinars.find(w => w.id === id);
-    if (webinar?.videoUrl) {
-      const key = webinar.videoUrl.split('/').pop() || '';
-      await storageService.deleteFile(key);
-    }
+    await videoDB.deleteVideo(id);
     
-    setWebinars(prev => prev.filter(w => w.id !== id));
+    setWebinars(prev => prev.filter(webinar => {
+      if (webinar.id === id) {
+        return !(currentUser.role === 'admin' || webinar.createdBy === currentUser.id);
+      }
+      return true;
+    }));
   };
 
   return (
     <WebinarContext.Provider value={{
-      webinars: getUserWebinars(),
+      webinars,
       currentWebinar,
       addWebinar,
       updateWebinar,
