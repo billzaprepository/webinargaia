@@ -29,6 +29,7 @@ const WebinarBasicSettings: React.FC<WebinarBasicSettingsProps> = ({
             value={title}
             onChange={(e) => onUpdate({ title: e.target.value })}
             className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            placeholder="Digite o título do webinar"
             required
           />
         </div>
@@ -42,6 +43,7 @@ const WebinarBasicSettings: React.FC<WebinarBasicSettingsProps> = ({
             onChange={(e) => onUpdate({ description: e.target.value })}
             rows={3}
             className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            placeholder="Digite a descrição do webinar"
             required
           />
         </div>

@@ -13,9 +13,20 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasEnded, setHasEnded] = useState(false);
   const [hasAttemptedPlay, setHasAttemptedPlay] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [volume, setVolume] = useState(1);
   const now = new Date();
   const isLive = now >= webinar.schedule.startTime && now <= webinar.schedule.endTime;
   const hasFinished = now > webinar.schedule.endTime;
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   useEffect(() => {
     let playAttemptInterval: NodeJS.Timeout;
@@ -25,22 +36,24 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
     const attemptPlay = async () => {
       if (videoRef.current && !isPlaying && !hasEnded) {
         try {
-          // Configure video element
+          // Disable all native controls and features
           videoRef.current.controls = false;
-          videoRef.current.muted = true; // Start muted to ensure autoplay works
-          videoRef.current.currentTime = 0; // Start from beginning
-          videoRef.current.loop = false; // Disable looping
+          videoRef.current.controlsList = 'nodownload noplaybackrate nofullscreen noremoteplayback';
+          videoRef.current.disablePictureInPicture = true;
+          videoRef.current.disableRemotePlayback = true;
+          videoRef.current.playsInline = true;
+          videoRef.current.muted = true;
+          videoRef.current.currentTime = 0;
+          videoRef.current.loop = false;
           
-          // Attempt to play
           await videoRef.current.play();
           setIsPlaying(true);
           setHasAttemptedPlay(true);
 
-          // After successful play, try to unmute
           setTimeout(() => {
             if (videoRef.current) {
               videoRef.current.muted = false;
-              videoRef.current.volume = 1;
+              videoRef.current.volume = volume;
             }
           }, 1000);
         } catch (error) {
@@ -56,10 +69,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
       const timeUntilStart = startTime.getTime() - now.getTime();
 
       if (timeUntilStart > 0) {
-        // Schedule video to start exactly at start time
         startTimeoutId = setTimeout(attemptPlay, timeUntilStart);
       } else if (isLive && !isPlaying && !hasEnded) {
-        // If we're already in the live window but video isn't playing, try to play immediately
         attemptPlay();
       }
     };
@@ -83,7 +94,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
       }
     };
 
-    // Handle video end
     const handleVideoEnd = () => {
       setHasEnded(true);
       setIsPlaying(false);
@@ -94,15 +104,24 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
 
     if (videoRef.current) {
       videoRef.current.addEventListener('ended', handleVideoEnd);
+      
+      // Prevent seeking
+      videoRef.current.addEventListener('seeking', (e) => {
+        e.preventDefault();
+        if (videoRef.current) {
+          videoRef.current.currentTime = videoRef.current.currentTime;
+        }
+      });
+      
+      // Prevent time updates
+      videoRef.current.addEventListener('timeupdate', (e) => {
+        e.preventDefault();
+      });
     }
 
-    // Initial setup
     scheduleVideoStart();
-    
-    // Set up intervals for continuous checking
     stateCheckInterval = setInterval(checkState, 1000);
     
-    // Only set up play attempt interval if we haven't successfully played yet
     if (!hasAttemptedPlay && isLive && !hasEnded) {
       playAttemptInterval = setInterval(attemptPlay, 2000);
     }
@@ -115,15 +134,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
       }
       if (videoRef.current) {
         videoRef.current.removeEventListener('ended', handleVideoEnd);
+        videoRef.current.removeEventListener('seeking', () => {});
+        videoRef.current.removeEventListener('timeupdate', () => {});
       }
     };
-  }, [webinar.schedule.startTime, webinar.schedule.endTime, isPlaying, isLive, hasAttemptedPlay, hasEnded]);
+  }, [webinar.schedule.startTime, webinar.schedule.endTime, isPlaying, isLive, hasAttemptedPlay, hasEnded, volume]);
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = Number(e.target.value);
+    setVolume(newVolume);
     if (videoRef.current) {
-      const volume = Number(e.target.value);
-      videoRef.current.volume = volume;
-      videoRef.current.muted = volume === 0;
+      videoRef.current.volume = newVolume;
+      videoRef.current.muted = newVolume === 0;
     }
   };
 
@@ -137,7 +159,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
     }
   };
 
-  // End screen component
   const EndScreen = () => (
     <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-90">
       <div className="text-center text-white p-8">
@@ -167,15 +188,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
             ref={videoRef}
             className="w-full h-full object-cover"
             playsInline
+            disablePictureInPicture
+            controlsList="nodownload noplaybackrate nofullscreen noremoteplayback"
+            style={{ pointerEvents: 'none' }}
           >
             <source src={URL.createObjectURL(webinar.video)} type="video/mp4" />
             Seu navegador não suporta a reprodução de vídeos.
           </video>
 
-          {/* Show end screen if webinar has ended or video has ended */}
           {(hasEnded || hasFinished) && <EndScreen />}
 
-          {/* Live Tag */}
           {isLive && !hasEnded && (
             <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium animate-pulse">
               <Radio size={14} className="animate-pulse" />
@@ -183,10 +205,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
             </div>
           )}
 
-          {/* Custom Controls - Bottom Left Corner */}
           {isPlaying && !hasEnded && (
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="flex items-center gap-4">
+            <div className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300 ${isFullscreen ? 'opacity-0 hover:opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+              <div className="flex items-center justify-end gap-4">
                 <div className="flex items-center gap-2 text-white">
                   <Volume2 size={20} />
                   <input
@@ -194,7 +215,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
                     min="0"
                     max="1"
                     step="0.1"
-                    defaultValue="1"
+                    value={volume}
                     onChange={handleVolumeChange}
                     className="w-24 accent-white"
                   />
@@ -203,6 +224,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ webinar }) => {
                 <button
                   onClick={handleFullscreen}
                   className="text-white hover:text-gray-200 transition-colors"
+                  title={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

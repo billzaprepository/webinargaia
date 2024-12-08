@@ -1,6 +1,7 @@
 import React from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, ExternalLink } from 'lucide-react';
 import { WebinarSchedule as Schedule } from '../types/webinar';
+import { useNavigate } from 'react-router-dom';
 
 interface WebinarScheduleProps {
   schedule: Schedule;
@@ -8,6 +9,8 @@ interface WebinarScheduleProps {
 }
 
 const WebinarSchedule: React.FC<WebinarScheduleProps> = ({ schedule, onUpdate }) => {
+  const navigate = useNavigate();
+  
   const formatDateTime = (date: Date) => {
     return new Date(date).toISOString().slice(0, 16);
   };
@@ -20,6 +23,14 @@ const WebinarSchedule: React.FC<WebinarScheduleProps> = ({ schedule, onUpdate })
       status: new Date() >= newDate ? 'live' : 'scheduled'
     });
   };
+
+  const handleAccessWebinar = () => {
+    if (schedule.slug) {
+      navigate(`/webinar/${schedule.slug}`);
+    }
+  };
+
+  const webinarLink = schedule.slug ? `${window.location.origin}/webinar/${schedule.slug}` : '';
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
@@ -84,16 +95,28 @@ const WebinarSchedule: React.FC<WebinarScheduleProps> = ({ schedule, onUpdate })
 
       <div className="mt-4 p-4 bg-blue-50 rounded-lg">
         <h3 className="text-sm font-medium text-blue-700 mb-2">Link do Webinar</h3>
-        <div className="flex items-center gap-2 bg-white p-3 rounded border border-blue-100">
-          <code className="text-sm text-blue-700 flex-1">
-            {window.location.origin}/webinar/{schedule.slug}
-          </code>
-          <button
-            onClick={() => navigator.clipboard.writeText(`${window.location.origin}/webinar/${schedule.slug}`)}
-            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-          >
-            Copiar
-          </button>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 bg-white p-3 rounded border border-blue-100">
+            <code className="text-sm text-blue-700 flex-1">
+              {webinarLink}
+            </code>
+            <button
+              onClick={() => navigator.clipboard.writeText(webinarLink)}
+              className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+            >
+              Copiar
+            </button>
+          </div>
+          
+          {schedule.slug && (
+            <button
+              onClick={handleAccessWebinar}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <ExternalLink size={20} />
+              Acessar Webinar
+            </button>
+          )}
         </div>
       </div>
     </div>

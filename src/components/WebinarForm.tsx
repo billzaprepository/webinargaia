@@ -21,6 +21,15 @@ const WebinarForm: React.FC = () => {
     video: null as File | null,
   });
 
+  const generateSlug = (title: string): string => {
+    return title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-'); // Remove consecutive hyphens
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -37,12 +46,9 @@ const WebinarForm: React.FC = () => {
       return;
     }
 
-    const slug = formData.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+    const slug = generateSlug(formData.title);
 
-    addWebinar({
+    const newWebinar = {
       slug,
       title: formData.title,
       description: formData.description,
@@ -52,7 +58,8 @@ const WebinarForm: React.FC = () => {
         endTime,
         title: formData.title,
         description: formData.description,
-        status: 'scheduled'
+        status: 'scheduled',
+        slug // Add slug to schedule
       },
       messages: [],
       video: formData.video,
@@ -67,11 +74,15 @@ const WebinarForm: React.FC = () => {
         chatTextColor: '#374151',
         fontFamily: 'Inter, sans-serif'
       }
-    });
+    };
 
-    const link = `/webinar/${slug}`;
-    setWebinarLink(link);
-    setSuccess(true);
+    const createdWebinar = addWebinar(newWebinar);
+    
+    if (createdWebinar) {
+      const link = `/webinar/${slug}`;
+      setWebinarLink(link);
+      setSuccess(true);
+    }
   };
 
   const handleViewWebinar = () => {
