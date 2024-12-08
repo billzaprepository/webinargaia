@@ -32,18 +32,25 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
     loadStoredVideos();
   }, []);
 
-  const getUserWebinars = () => {
-    if (!currentUser) return [];
-    if (currentUser.role === 'admin') return webinars;
-    return webinars.filter(webinar => webinar.createdBy === currentUser.id);
+  const generateSlug = (title: string): string => {
+    return title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
   };
 
   const addWebinar = async (newWebinar: Omit<Webinar, 'id' | 'analytics'>) => {
     if (!currentUser) return null;
     
+    const webinarId = Math.random().toString(36).substr(2, 9);
+    const slug = generateSlug(newWebinar.title);
+    
     const webinar: Webinar = {
       ...newWebinar,
-      id: Math.random().toString(36).substr(2, 9),
+      id: webinarId,
+      slug,
       createdBy: currentUser.id,
       ctaButtons: [],
       theme: defaultTheme,
@@ -75,9 +82,19 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
       await videoStorage.saveVideo(id, updates.video);
     }
 
+    // If title is being updated, generate new slug
+    let newSlug: string | undefined;
+    if (updates.title) {
+      newSlug = generateSlug(updates.title);
+    }
+
     setWebinars(prev => prev.map(webinar => {
       if (webinar.id === id && (currentUser.role === 'admin' || webinar.createdBy === currentUser.id)) {
-        return { ...webinar, ...updates };
+        return { 
+          ...webinar, 
+          ...updates,
+          ...(newSlug ? { slug: newSlug } : {})
+        };
       }
       return webinar;
     }));
@@ -97,15 +114,20 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }));
   };
 
-  // Rest of the context implementation remains the same
+  const getWebinarBySlug = (slug: string) => {
+    return webinars.find(w => w.slug === slug);
+  };
+
   return (
     <WebinarContext.Provider value={{
-      webinars: getUserWebinars(),
+      webinars: currentUser?.role === 'admin' ? webinars : webinars.filter(w => w.createdBy === currentUser?.id),
+      allWebinars: webinars, // Provide access to all webinars for public routes
       currentWebinar,
       addWebinar,
       updateWebinar,
       removeWebinar,
       setCurrentWebinar,
+      getWebinarBySlug,
       canManageWebinar: (webinarId: string) => {
         if (!currentUser) return false;
         if (currentUser.role === 'admin') return true;

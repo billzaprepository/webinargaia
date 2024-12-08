@@ -1,18 +1,4 @@
-export interface Timer {
-  id: string;
-  showAt: {
-    minutes: number;
-    seconds: number;
-  };
-  duration: {
-    minutes: number;
-    seconds: number;
-  };
-  textColor: string;
-  backgroundColor: string;
-  opacity: string;
-  position: 'above' | 'below' | 'left' | 'right';
-}
+import { Timer } from './timer';
 
 export interface WebinarTheme {
   primaryColor: string;
@@ -80,11 +66,13 @@ export interface Webinar {
 
 export interface WebinarState {
   webinars: Webinar[];
+  allWebinars: Webinar[]; // All webinars for public access
   currentWebinar: Webinar | null;
-  addWebinar: (webinar: Omit<Webinar, 'id' | 'analytics'>) => Webinar | null;
+  addWebinar: (webinar: Omit<Webinar, 'id' | 'analytics'>) => Promise<Webinar | null>;
   updateWebinar: (id: string, webinar: Partial<Webinar>) => void;
   removeWebinar: (id: string) => void;
   setCurrentWebinar: (webinar: Webinar | null) => void;
+  getWebinarBySlug: (slug: string) => Webinar | undefined;
   canManageWebinar: (webinarId: string) => boolean;
   updateAnalytics: (webinarId: string) => void;
 }

@@ -8,8 +8,8 @@ import { Radio } from 'lucide-react';
 
 const WebinarPage: React.FC = () => {
   const { slug } = useParams();
-  const { webinars, setCurrentWebinar } = useWebinar();
-  const webinar = webinars.find(w => w.slug === slug);
+  const { allWebinars, setCurrentWebinar } = useWebinar();
+  const webinar = allWebinars.find(w => w.slug === slug);
 
   useEffect(() => {
     if (webinar) {
