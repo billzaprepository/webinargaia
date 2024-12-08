@@ -7,8 +7,6 @@ import WebinarPage from './pages/WebinarPage';
 import AdminPage from './pages/AdminPage';
 import LoginPage from './pages/LoginPage';
 import PlansPage from './pages/PlansPage';
-import PublicLayout from './layouts/PublicLayout';
-import PrivateLayout from './layouts/PrivateLayout';
 
 function App() {
   return (
@@ -17,18 +15,10 @@ function App() {
         <WebinarProvider>
           <BrowserRouter>
             <Routes>
-              {/* Public Routes */}
-              <Route element={<PublicLayout />}>
-                <Route path="/webinar/:slug" element={<WebinarPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/plans" element={<PlansPage />} />
-              </Route>
-
-              {/* Protected Routes */}
-              <Route element={<PrivateLayout />}>
-                <Route path="/admin/*" element={<AdminPage />} />
-              </Route>
-
+              <Route path="/webinar/:slug" element={<WebinarPage />} />
+              <Route path="/admin/*" element={<AdminPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/plans" element={<PlansPage />} />
               <Route path="/" element={<Navigate to="/admin" replace />} />
             </Routes>
           </BrowserRouter>
