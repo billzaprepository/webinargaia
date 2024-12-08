@@ -19,7 +19,6 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [currentWebinar, setCurrentWebinar] = useState<Webinar | null>(null);
   const { currentUser } = useAuth();
 
-  // Load stored videos when component mounts
   useEffect(() => {
     const loadStoredVideos = async () => {
       const storedVideos = await videoStorage.getAllVideos();
@@ -65,7 +64,6 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     };
 
-    // Store video if present
     if (webinar.video) {
       await videoStorage.saveVideo(webinar.id, webinar.video);
     }
@@ -77,12 +75,10 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateWebinar = async (id: string, updates: Partial<Webinar>) => {
     if (!currentUser) return;
     
-    // Handle video updates
     if (updates.video) {
       await videoStorage.saveVideo(id, updates.video);
     }
 
-    // If title is being updated, generate new slug
     let newSlug: string | undefined;
     if (updates.title) {
       newSlug = generateSlug(updates.title);
@@ -103,7 +99,6 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const removeWebinar = async (id: string) => {
     if (!currentUser) return;
     
-    // Remove stored video
     await videoStorage.deleteVideo(id);
     
     setWebinars(prev => prev.filter(webinar => {
@@ -118,10 +113,45 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return webinars.find(w => w.slug === slug);
   };
 
+  const updateAnalytics = (webinarId: string) => {
+    setWebinars(prev => prev.map(webinar => {
+      if (webinar.id === webinarId) {
+        const now = new Date();
+        const startTime = new Date(webinar.schedule.startTime);
+        const endTime = new Date(webinar.schedule.endTime);
+        
+        if (now >= startTime) {
+          const timeElapsedMinutes = Math.max(0, (now.getTime() - startTime.getTime()) / (1000 * 60));
+          const hasEnded = now > endTime;
+          
+          const baseViews = Math.min(timeElapsedMinutes * 2, 1000);
+          const baseUniqueViewers = Math.floor(baseViews * 0.8);
+          const baseWatchTime = hasEnded ? 45 : Math.min(timeElapsedMinutes, 45);
+          const baseChatMessages = Math.floor(baseViews * 0.3);
+          const engagement = Math.floor((baseChatMessages / (baseViews || 1)) * 100);
+
+          return {
+            ...webinar,
+            analytics: {
+              views: Math.floor(baseViews),
+              uniqueViewers: Math.floor(baseUniqueViewers),
+              watchTime: Math.floor(baseWatchTime),
+              engagement: Math.min(engagement, 100),
+              chatMessages: Math.floor(baseChatMessages),
+              lastUpdated: now
+            }
+          };
+        }
+        return webinar;
+      }
+      return webinar;
+    }));
+  };
+
   return (
     <WebinarContext.Provider value={{
       webinars: currentUser?.role === 'admin' ? webinars : webinars.filter(w => w.createdBy === currentUser?.id),
-      allWebinars: webinars, // Provide access to all webinars for public routes
+      allWebinars: webinars,
       currentWebinar,
       addWebinar,
       updateWebinar,
@@ -134,40 +164,7 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const webinar = webinars.find(w => w.id === webinarId);
         return webinar?.createdBy === currentUser.id;
       },
-      updateAnalytics: (webinarId: string) => {
-        setWebinars(prev => prev.map(webinar => {
-          if (webinar.id === webinarId) {
-            const now = new Date();
-            const startTime = new Date(webinar.schedule.startTime);
-            const endTime = new Date(webinar.schedule.endTime);
-            
-            if (now >= startTime) {
-              const timeElapsedMinutes = Math.max(0, (now.getTime() - startTime.getTime()) / (1000 * 60));
-              const hasEnded = now > endTime;
-              
-              const baseViews = Math.min(timeElapsedMinutes * 2, 1000);
-              const baseUniqueViewers = Math.floor(baseViews * 0.8);
-              const baseWatchTime = hasEnded ? 45 : Math.min(timeElapsedMinutes, 45);
-              const baseChatMessages = Math.floor(baseViews * 0.3);
-              const engagement = Math.floor((baseChatMessages / (baseViews || 1)) * 100);
-
-              return {
-                ...webinar,
-                analytics: {
-                  views: Math.floor(baseViews),
-                  uniqueViewers: Math.floor(baseUniqueViewers),
-                  watchTime: Math.floor(baseWatchTime),
-                  engagement: Math.min(engagement, 100),
-                  chatMessages: Math.floor(baseChatMessages),
-                  lastUpdated: now
-                }
-              };
-            }
-            return webinar;
-          }
-          return webinar;
-        }));
-      }
+      updateAnalytics
     }}>
       {children}
     </WebinarContext.Provider>
