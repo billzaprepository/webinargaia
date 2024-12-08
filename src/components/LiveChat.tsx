@@ -9,7 +9,6 @@ interface LiveChatProps {
 
 const LiveChat: React.FC<LiveChatProps> = ({ webinar }) => {
   const [displayedMessages, setDisplayedMessages] = useState(webinar.messages);
-  const { updateAnalytics } = useWebinar();
 
   useEffect(() => {
     if (!webinar || !webinar.schedule) {
@@ -27,12 +26,6 @@ const LiveChat: React.FC<LiveChatProps> = ({ webinar }) => {
 
     setDisplayedMessages(visibleMessages);
 
-    // Update analytics
-    updateAnalytics(webinar.id, {
-      chatMessages: webinar.messages.length,
-      engagementRate: Math.round(((webinar.messages.length + webinar.analytics.ctaClicks.reduce((sum, click) => sum + click.clicks, 0)) / webinar.analytics.totalViews) * 100)
-    });
-
     // Set up interval to check for new messages
     const interval = setInterval(() => {
       const currentTime = new Date();
@@ -44,7 +37,7 @@ const LiveChat: React.FC<LiveChatProps> = ({ webinar }) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [webinar, webinar.messages.length]);
+  }, [webinar]);
 
   return (
     <div className="bg-white rounded-lg shadow-lg flex flex-col h-full">

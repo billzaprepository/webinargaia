@@ -1,36 +1,65 @@
-import { WebinarTheme } from './theme';
-
-export interface GTMSettings {
-  containerId: string;
-  enabled: boolean;
-  trackPageView: boolean;
-  trackEvents: boolean;
-  trackEcommerce: boolean;
+export interface Timer {
+  id: string;
+  showAt: {
+    minutes: number;
+    seconds: number;
+  };
+  duration: {
+    minutes: number;
+    seconds: number;
+  };
+  textColor: string;
+  backgroundColor: string;
+  opacity: string;
+  position: 'above' | 'below' | 'left' | 'right';
 }
 
-export interface MetaPixelSettings {
-  pixelId: string;
-  enabled: boolean;
-  trackPageView: boolean;
-  trackConversion: boolean;
-  trackSubscription: boolean;
+export interface WebinarTheme {
+  primaryColor: string;
+  backgroundColor: string;
+  headerColor: string;
+  chatBackgroundColor: string;
+  chatTextColor: string;
+  fontFamily: string;
+  timers?: Timer[];
+}
+
+export interface CTAButton {
+  id: string;
+  text: string;
+  url: string;
+  color: string;
+  showAt: number;
+  duration: number;
+  position?: 'above' | 'below' | 'left' | 'right';
+  backgroundColor?: string;
+  opacity?: string;
+}
+
+export interface WebinarSchedule {
+  startTime: Date;
+  endTime: Date;
+  title: string;
+  description: string;
+  status: 'scheduled' | 'live' | 'ended';
+  slug?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  username: string;
+  message: string;
+  timestamp: string;
+  scheduledTime: number;
 }
 
 export interface WebinarAnalytics {
-  totalViews: number;
+  views: number;
   uniqueViewers: number;
-  averageWatchTime: number;
-  engagementRate: number;
-  peakViewers: number;
-  viewerHistory: {
-    timestamp: Date;
-    count: number;
-  }[];
+  watchTime: number;
+  engagement: number;
   chatMessages: number;
-  ctaClicks: {
-    buttonId: string;
-    clicks: number;
-  }[];
+  lastUpdated: Date;
 }
 
 export interface Webinar {
@@ -47,8 +76,15 @@ export interface Webinar {
   ctaButtons: CTAButton[];
   theme: WebinarTheme;
   analytics: WebinarAnalytics;
-  metaPixel?: MetaPixelSettings;
-  gtm?: GTMSettings;
 }
 
-// ... rest of the types ...
+export interface WebinarState {
+  webinars: Webinar[];
+  currentWebinar: Webinar | null;
+  addWebinar: (webinar: Omit<Webinar, 'id' | 'analytics'>) => Webinar | null;
+  updateWebinar: (id: string, webinar: Partial<Webinar>) => void;
+  removeWebinar: (id: string) => void;
+  setCurrentWebinar: (webinar: Webinar | null) => void;
+  canManageWebinar: (webinarId: string) => boolean;
+  updateAnalytics: (webinarId: string) => void;
+}

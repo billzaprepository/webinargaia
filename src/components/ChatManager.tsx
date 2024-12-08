@@ -15,15 +15,24 @@ const ChatManager: React.FC<ChatManagerProps> = ({ messages, onUpdate }) => {
     scheduledTime: 0
   });
 
-  const handleAddMessage = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const timestamp = new Date(Date.now() + newMessage.scheduledTime * 1000)
-      .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     
+    if (editingId) {
+      handleSaveEdit();
+    } else {
+      handleAddMessage();
+    }
+  };
+
+  const handleAddMessage = () => {
     const message: ChatMessage = {
-      ...newMessage,
       id: Math.random().toString(36).substr(2, 9),
-      timestamp
+      username: newMessage.username,
+      message: newMessage.message,
+      scheduledTime: newMessage.scheduledTime,
+      timestamp: new Date(Date.now() + newMessage.scheduledTime * 1000)
+        .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     };
 
     onUpdate([...messages, message].sort((a, b) => a.scheduledTime - b.scheduledTime));
@@ -39,25 +48,24 @@ const ChatManager: React.FC<ChatManagerProps> = ({ messages, onUpdate }) => {
     });
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveEdit = () => {
     if (!editingId) return;
-
-    const timestamp = new Date(Date.now() + newMessage.scheduledTime * 1000)
-      .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
     const updatedMessages = messages.map(msg => 
       msg.id === editingId
-        ? { ...msg, ...newMessage, timestamp }
+        ? {
+            ...msg,
+            username: newMessage.username,
+            message: newMessage.message,
+            scheduledTime: newMessage.scheduledTime,
+            timestamp: new Date(Date.now() + newMessage.scheduledTime * 1000)
+              .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+          }
         : msg
     );
 
     onUpdate(updatedMessages.sort((a, b) => a.scheduledTime - b.scheduledTime));
     resetForm();
-  };
-
-  const handleRemoveMessage = (id: string) => {
-    onUpdate(messages.filter(msg => msg.id !== id));
   };
 
   const resetForm = () => {
@@ -69,15 +77,18 @@ const ChatManager: React.FC<ChatManagerProps> = ({ messages, onUpdate }) => {
     });
   };
 
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  const handleRemoveMessage = (id: string) => {
+    onUpdate(messages.filter(msg => msg.id !== id));
   };
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={editingId ? handleSaveEdit : handleAddMessage} className="space-y-4">
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h2 className="text-xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+        <User size={24} />
+        Gerenciar Mensagens do Chat
+      </h2>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -153,49 +164,49 @@ const ChatManager: React.FC<ChatManagerProps> = ({ messages, onUpdate }) => {
         </div>
       </form>
 
-      <div className="space-y-4">
+      <div className="mt-8 space-y-4">
         <h3 className="text-lg font-semibold text-gray-800">Mensagens Programadas</h3>
-        <div className="space-y-3">
-          {messages.map(msg => (
-            <div key={msg.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
-                  {msg.username.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className="font-medium text-gray-800">{msg.username}</p>
-                  <p className="text-gray-600">{msg.message}</p>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Clock size={14} />
-                    <span>Aparece em {formatTime(msg.scheduledTime)}</span>
+        {messages.length > 0 ? (
+          <div className="space-y-3">
+            {messages.map(msg => (
+              <div key={msg.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                    {msg.username.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800">{msg.username}</p>
+                    <p className="text-gray-600">{msg.message}</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                      <Clock size={14} />
+                      <span>Aparece em {msg.scheduledTime}s</span>
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleEditMessage(msg)}
+                    className="text-blue-500 hover:text-blue-700 p-2"
+                    disabled={editingId !== null}
+                  >
+                    <Edit2 size={20} />
+                  </button>
+                  <button
+                    onClick={() => handleRemoveMessage(msg.id)}
+                    className="text-red-500 hover:text-red-700 p-2"
+                    disabled={editingId !== null}
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleEditMessage(msg)}
-                  className="text-blue-500 hover:text-blue-700 p-2"
-                  disabled={editingId !== null}
-                >
-                  <Edit2 size={20} />
-                </button>
-                <button
-                  onClick={() => handleRemoveMessage(msg.id)}
-                  className="text-red-500 hover:text-red-700 p-2"
-                  disabled={editingId !== null}
-                >
-                  <Trash2 size={20} />
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {messages.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              Nenhuma mensagem programada.
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            Nenhuma mensagem programada.
+          </div>
+        )}
       </div>
     </div>
   );

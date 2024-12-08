@@ -5,7 +5,6 @@ import { useSettings } from '../context/SettingsContext';
 import UserManagement from './UserManagement';
 import PlansManagement from './PlansManagement';
 import LoginCustomization from './LoginCustomization';
-import WebhookSettings from './WebhookSettings';
 import { BarChart2, Users, Video, DollarSign, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 
 const UserManagementDashboard: React.FC = () => {
@@ -90,7 +89,6 @@ const UserManagementDashboard: React.FC = () => {
         <div className="space-y-8">
           <PlansManagement />
           <LoginCustomization />
-          <WebhookSettings />
         </div>
       </div>
     </div>
