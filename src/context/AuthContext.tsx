@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
-import { User, Plan, UserState } from '../types/user';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User, UserState } from '../types/user';
 
 const AuthContext = createContext<UserState | undefined>(undefined);
 
@@ -25,13 +25,39 @@ const initialUsers: User[] = [{
 }];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [users, setUsers] = useState<User[]>(() => {
+    const savedUsers = localStorage.getItem('users');
+    return savedUsers ? JSON.parse(savedUsers) : initialUsers;
+  });
+  
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('currentUser');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('isAuthenticated') === 'true';
+  });
 
-  const login = async (email: string, password: string) => {
+  useEffect(() => {
+    localStorage.setItem('users', JSON.stringify(users));
+  }, [users]);
+
+  useEffect(() => {
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    localStorage.setItem('isAuthenticated', String(isAuthenticated));
+  }, [currentUser, isAuthenticated]);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
     const user = users.find(u => u.email === email && u.password === password);
-    if (!user) return false;
+    
+    if (!user) {
+      return false;
+    }
+
+    if (user.subscription?.status === 'blocked') {
+      return false;
+    }
 
     setCurrentUser(user);
     setIsAuthenticated(true);
@@ -41,6 +67,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setCurrentUser(null);
     setIsAuthenticated(false);
+    localStorage.removeItem('currentUser');
+    localStorage.setItem('isAuthenticated', 'false');
   };
 
   const addUser = async (userData: Omit<User, 'id' | 'role' | 'webinars' | 'createdAt'>) => {
@@ -58,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription: {
         id: Math.random().toString(36).substr(2, 9),
         userId: Math.random().toString(36).substr(2, 9),
-        planId: userData.selectedPlanId,
+        planId: userData.selectedPlanId || 'basic',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         status: 'active',

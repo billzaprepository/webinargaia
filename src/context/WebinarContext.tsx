@@ -17,16 +17,38 @@ const defaultTheme: WebinarTheme = {
 export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [webinars, setWebinars] = useState<Webinar[]>([]);
   const [currentWebinar, setCurrentWebinar] = useState<Webinar | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { currentUser } = useAuth();
 
-  // Load stored videos when component mounts
   useEffect(() => {
     const loadStoredVideos = async () => {
-      const storedVideos = await videoDB.getAllVideos();
-      setWebinars(prev => prev.map(webinar => {
-        const storedVideo = storedVideos.find(v => v.id === webinar.id);
-        return storedVideo ? { ...webinar, video: storedVideo.file } : webinar;
-      }));
+      try {
+        setIsLoading(true);
+        const isAvailable = await videoDB.isStorageAvailable();
+        
+        if (!isAvailable) {
+          console.error('IndexedDB storage is not available');
+          return;
+        }
+
+        const storedVideos = await videoDB.getAllVideos();
+        setWebinars(prev => prev.map(webinar => {
+          const storedVideo = storedVideos.find(v => v.id === webinar.id);
+          if (storedVideo) {
+            return {
+              ...webinar,
+              video: new File([...storedVideo.chunks], storedVideo.metadata.name, {
+                type: storedVideo.metadata.type
+              })
+            };
+          }
+          return webinar;
+        }));
+      } catch (error) {
+        console.error('Error loading stored videos:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadStoredVideos();
@@ -35,59 +57,76 @@ export const WebinarProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const addWebinar = async (newWebinar: Omit<Webinar, 'id' | 'analytics'>) => {
     if (!currentUser) return null;
     
-    const webinarId = Math.random().toString(36).substr(2, 9);
-    const webinar: Webinar = {
-      ...newWebinar,
-      id: webinarId,
-      createdBy: currentUser.id,
-      ctaButtons: [],
-      theme: defaultTheme,
-      messages: [],
-      analytics: {
-        views: 0,
-        uniqueViewers: 0,
-        watchTime: 0,
-        engagement: 0,
-        chatMessages: 0,
-        lastUpdated: new Date()
-      }
-    };
+    try {
+      const webinarId = Math.random().toString(36).substr(2, 9);
+      const webinar: Webinar = {
+        ...newWebinar,
+        id: webinarId,
+        createdBy: currentUser.id,
+        ctaButtons: [],
+        theme: defaultTheme,
+        messages: [],
+        analytics: {
+          views: 0,
+          uniqueViewers: 0,
+          watchTime: 0,
+          engagement: 0,
+          chatMessages: 0,
+          lastUpdated: new Date()
+        }
+      };
 
-    if (webinar.video) {
-      await videoDB.saveVideo(webinarId, webinar.video);
+      if (webinar.video) {
+        await videoDB.saveVideo(webinarId, webinar.video);
+      }
+      
+      setWebinars(prev => [...prev, webinar]);
+      return webinar;
+    } catch (error) {
+      console.error('Error adding webinar:', error);
+      return null;
     }
-    
-    setWebinars(prev => [...prev, webinar]);
-    return webinar;
   };
 
   const updateWebinar = async (id: string, updates: Partial<Webinar>) => {
     if (!currentUser) return;
     
-    if (updates.video) {
-      await videoDB.saveVideo(id, updates.video);
-    }
-
-    setWebinars(prev => prev.map(webinar => {
-      if (webinar.id === id && (currentUser.role === 'admin' || webinar.createdBy === currentUser.id)) {
-        return { ...webinar, ...updates };
+    try {
+      if (updates.video) {
+        await videoDB.saveVideo(id, updates.video);
       }
-      return webinar;
-    }));
+
+      setWebinars(prev => prev.map(webinar => {
+        if (webinar.id === id && (currentUser.role === 'admin' || webinar.createdBy === currentUser.id)) {
+          return { ...webinar, ...updates };
+        }
+        return webinar;
+      }));
+    } catch (error) {
+      console.error('Error updating webinar:', error);
+    }
   };
 
   const removeWebinar = async (id: string) => {
     if (!currentUser) return;
     
-    await videoDB.deleteVideo(id);
-    
-    setWebinars(prev => prev.filter(webinar => {
-      if (webinar.id === id) {
-        return !(currentUser.role === 'admin' || webinar.createdBy === currentUser.id);
-      }
-      return true;
-    }));
+    try {
+      await videoDB.deleteVideo(id);
+      
+      setWebinars(prev => prev.filter(webinar => {
+        if (webinar.id === id) {
+          return !(currentUser.role === 'admin' || webinar.createdBy === currentUser.id);
+        }
+        return true;
+      }));
+    } catch (error) {
+      console.error('Error removing webinar:', error);
+    }
   };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <WebinarContext.Provider value={{

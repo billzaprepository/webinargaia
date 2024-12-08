@@ -1,34 +1,43 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useParams } from 'react-router-dom';
+import { Radio } from 'lucide-react';
 import VideoPlayer from '../components/VideoPlayer';
 import LiveChat from '../components/LiveChat';
 import WebinarCountdown from '../components/WebinarCountdown';
-import { useWebinar } from '../context/WebinarContext';
-import { Radio } from 'lucide-react';
+import { usePublicWebinar } from '../hooks/usePublicWebinar';
 
 const WebinarPage: React.FC = () => {
   const { slug } = useParams();
-  const { webinars, setCurrentWebinar } = useWebinar();
-  const webinar = webinars.find(w => w.slug === slug);
+  const { webinar, isLoading, error } = usePublicWebinar(slug);
 
-  useEffect(() => {
-    if (webinar) {
-      setCurrentWebinar(webinar);
-    }
-  }, [webinar, setCurrentWebinar]);
-
-  if (!webinar) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Webinar não encontrado</h1>
-          <p className="text-gray-600">O webinar que você está procurando não existe ou foi removido.</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading webinar...</p>
         </div>
       </div>
     );
   }
 
-  const isLive = new Date() >= webinar.schedule.startTime && new Date() <= webinar.schedule.endTime;
+  if (error || !webinar) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">
+            {error || 'Webinar not found'}
+          </h1>
+          <p className="text-gray-600">
+            The webinar you are looking for is not available.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const isLive = new Date() >= webinar.schedule.startTime && 
+                 new Date() <= webinar.schedule.endTime;
 
   return (
     <div className="min-h-screen bg-gray-100">
