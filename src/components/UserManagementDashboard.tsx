@@ -5,6 +5,7 @@ import { useSettings } from '../context/SettingsContext';
 import UserManagement from './UserManagement';
 import PlansManagement from './PlansManagement';
 import LoginCustomization from './LoginCustomization';
+import MinioSettingsPanel from './admin/settings/MinioSettingsPanel';
 import { BarChart2, Users, Video, DollarSign, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 
 const UserManagementDashboard: React.FC = () => {
@@ -87,6 +88,7 @@ const UserManagementDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <UserManagement />
         <div className="space-y-8">
+          <MinioSettingsPanel />
           <PlansManagement />
           <LoginCustomization />
         </div>

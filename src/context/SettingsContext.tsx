@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Settings, SettingsState } from '../types/settings';
 import { Plan } from '../types/user';
+import { storageService } from '../services/storage/StorageService';
+import { defaultStorageConfig } from '../services/storage/config';
 
 const defaultPlans: Plan[] = [
   {
@@ -26,16 +28,44 @@ const defaultPlans: Plan[] = [
 const SettingsContext = createContext<SettingsState | undefined>(undefined);
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [settings, setSettings] = useState<Settings>({
-    logo: null,
-    plans: defaultPlans
+  const [settings, setSettings] = useState<Settings>(() => {
+    const savedSettings = localStorage.getItem('settings');
+    return savedSettings ? JSON.parse(savedSettings) : {
+      logo: null,
+      plans: defaultPlans,
+      minioSettings: defaultStorageConfig
+    };
   });
 
-  const updateSettings = (newSettings: Partial<Settings>) => {
-    setSettings(prev => ({
-      ...prev,
-      ...newSettings
-    }));
+  useEffect(() => {
+    const initStorage = async () => {
+      try {
+        await storageService.init(settings.minioSettings);
+      } catch (error) {
+        console.error('Failed to initialize storage:', error);
+      }
+    };
+
+    initStorage();
+  }, [settings.minioSettings]);
+
+  const updateSettings = async (newSettings: Partial<Settings>) => {
+    try {
+      const updatedSettings = {
+        ...settings,
+        ...newSettings
+      };
+
+      if (newSettings.minioSettings) {
+        await storageService.updateConfig(newSettings.minioSettings);
+      }
+
+      setSettings(updatedSettings);
+      localStorage.setItem('settings', JSON.stringify(updatedSettings));
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+      throw error;
+    }
   };
 
   return (

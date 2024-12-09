@@ -1,71 +1,47 @@
-import React, { useState } from 'react';
+import React, { useCallback } from 'react';
 import { Upload, X, AlertCircle } from 'lucide-react';
+import { useVideoUpload } from '../hooks/useVideoUpload';
+import { VideoMetadata } from '../services/VideoStorageService';
 
 interface VideoUploadProps {
-  onVideoChange: (file: File | null) => void;
+  onVideoChange: (metadata: VideoMetadata) => void;
   currentVideo: File | null;
   maxSize?: number; // in GB
 }
 
-const VideoUpload: React.FC<VideoUploadProps> = ({ onVideoChange, currentVideo, maxSize = Infinity }) => {
-  const [dragActive, setDragActive] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const VideoUpload: React.FC<VideoUploadProps> = ({ onVideoChange, currentVideo, maxSize = 2 }) => {
+  const { uploadVideo, isUploading, progress, error } = useVideoUpload();
+  
+  const handleUpload = useCallback(async (file: File) => {
+    try {
+      // Validate file size
+      const maxSizeBytes = maxSize * 1024 * 1024 * 1024;
+      if (file.size > maxSizeBytes) {
+        throw new Error(`File size exceeds ${maxSize}GB limit`);
+      }
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
+      const metadata = await uploadVideo(file);
+      onVideoChange(metadata);
+    } catch (err) {
+      console.error('Upload failed:', err);
     }
-  };
+  }, [uploadVideo, onVideoChange, maxSize]);
 
-  const validateFile = (file: File): boolean => {
-    setError(null);
-    
-    // Check file type
-    if (!file.type.startsWith('video/')) {
-      setError('O arquivo deve ser um vídeo');
-      return false;
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleUpload(e.target.files[0]);
     }
-
-    // Check file size
-    const sizeInGB = file.size / (1024 * 1024 * 1024);
-    if (sizeInGB > maxSize) {
-      setError(`O arquivo excede o limite de ${maxSize}GB do seu plano`);
-      return false;
-    }
-
-    return true;
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (validateFile(file)) {
-        onVideoChange(file);
-      }
+      handleUpload(e.dataTransfer.files[0]);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (validateFile(file)) {
-        onVideoChange(file);
-      }
-    }
-  };
-
-  const handleRemove = () => {
-    onVideoChange(null);
-    setError(null);
   };
 
   return (
@@ -74,39 +50,29 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onVideoChange, currentVideo, 
         <div className="mb-4 bg-red-50 text-red-700 p-4 rounded-lg flex items-start gap-2">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium">Erro ao carregar o vídeo</p>
-            <p className="text-sm">{error}</p>
+            <p className="font-medium">Upload Error</p>
+            <p className="text-sm">{error.message}</p>
           </div>
         </div>
       )}
 
-      {!currentVideo ? (
-        <div
-          className={`relative border-2 border-dashed rounded-lg p-8 ${
-            dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-          }`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-        >
-          <input
-            type="file"
-            accept="video/*"
-            onChange={handleChange}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          />
-          <div className="text-center">
-            <Upload className="mx-auto h-12 w-12 text-gray-400" />
-            <p className="mt-2 text-sm text-gray-600">
-              Arraste e solte um vídeo aqui, ou clique para selecionar
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              MP4, WebM ou Ogg (max. {maxSize}GB)
-            </p>
+      {isUploading ? (
+        <div className="border rounded-lg p-4 bg-gray-50">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-600 transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Uploading... {progress}%
+              </p>
+            </div>
           </div>
         </div>
-      ) : (
+      ) : currentVideo ? (
         <div className="border rounded-lg p-4 bg-gray-50">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -124,12 +90,38 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onVideoChange, currentVideo, 
             </div>
             <button
               type="button"
-              onClick={handleRemove}
+              onClick={() => onVideoChange(null)}
               className="text-red-500 hover:text-red-700"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
+        </div>
+      ) : (
+        <div
+          className="border-2 border-dashed rounded-lg p-8"
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+        >
+          <input
+            type="file"
+            accept="video/*"
+            onChange={handleFileChange}
+            className="hidden"
+            id="video-upload"
+          />
+          <label
+            htmlFor="video-upload"
+            className="cursor-pointer block text-center"
+          >
+            <Upload className="mx-auto h-12 w-12 text-gray-400" />
+            <p className="mt-2 text-sm text-gray-600">
+              Drag and drop a video here, or click to select
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              MP4, WebM or Ogg (max. {maxSize}GB)
+            </p>
+          </label>
         </div>
       )}
     </div>

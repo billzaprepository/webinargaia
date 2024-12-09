@@ -1,11 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    exclude: ['lucide-react']
   },
   server: {
     host: true,
@@ -14,5 +13,18 @@ export default defineConfig({
   preview: {
     host: true,
     port: Number(process.env.PORT) || 3000,
+  },
+  define: {
+    global: 'globalThis'
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          aws: ['@aws-sdk/client-s3', '@aws-sdk/s3-request-presigner']
+        }
+      }
+    }
   }
 });

@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';
 import PublicRoutes from './routes/PublicRoutes';
 import PrivateRoutes from './routes/PrivateRoutes';
+import LoginPage from './pages/LoginPage';
 
 function App() {
   return (
@@ -13,9 +14,10 @@ function App() {
         <WebinarProvider>
           <BrowserRouter>
             <Routes>
+              <Route path="/login" element={<LoginPage />} />
               <Route path="/admin/*" element={<PrivateRoutes />} />
-              <Route path="/*" element={<PublicRoutes />} />
-              <Route path="/" element={<Navigate to="/admin" replace />} />
+              <Route path="/webinar/*" element={<PublicRoutes />} />
+              <Route path="/" element={<Navigate to="/login" replace />} />
             </Routes>
           </BrowserRouter>
         </WebinarProvider>
